@@ -65,11 +65,14 @@ echo "==> selecting simulator"
 # device names exist depends on the installed Xcode, and pinning one couples this script to a
 # runner image that changes without notice. Newest runtime first, so the picked device is the
 # most current one available.
+# The device name goes to python through the environment rather than being interpolated into the
+# script text: macOS still ships bash 3.2, so the ${VAR@Q} quoting operator is unavailable, and
+# an unquoted name containing a space would corrupt the program.
 selection="$(xcrun simctl list devices available --json \
-    | python3 -c "
-import json, sys
+    | FFMPEGKIT_PREFERRED_DEVICE="${SIMULATOR_DEVICE}" python3 -c "
+import json, os, sys
 
-preferred = ${SIMULATOR_DEVICE@Q}
+preferred = os.environ['FFMPEGKIT_PREFERRED_DEVICE']
 runtimes = json.load(sys.stdin)['devices']
 
 def candidates():
