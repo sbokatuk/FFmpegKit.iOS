@@ -1,0 +1,43 @@
+name: Select Xcode
+description: >
+  Selects an installed Xcode carrying an iOS 26 SDK, and verifies the selection actually works.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+
+        # The packages advertise net10.0-ios26.0, which can only be built by an Xcode carrying an
+        # iOS 26 SDK. The runner image default is much older (16.4 at the time of writing), so one
+        # has to be selected explicitly.
+        #
+        # Resolved rather than hardcoded, because `xcode-select -s` does NOT validate its
+        # argument: pointing it at a path that does not exist succeeds silently, and the failure
+        # only surfaces much later as "SDK ... cannot be located" from xcrun, in whichever step
+        # first needs the native toolchain. A hardcoded /Applications/Xcode_26.0.app did exactly
+        # that - the image ships 26.0.1, not 26.0 - and the packaging job did not even notice,
+        # because packing a binding project never shells out to xcrun.
+        #
+        # The lowest installed 26.x is preferred: it is the closest match to the iOS 26.0 SDK the
+        # workload targets, and newer Xcodes are likelier to warn about an SDK it has not seen.
+        app="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | head -1 || true)"
+
+        if [ -z "${app}" ]; then
+          echo "::error::no Xcode 26.x is installed, so net10.0-ios26.0 cannot be built"
+          echo "Installed Xcodes:"
+          ls -d /Applications/Xcode*.app || true
+          exit 1
+        fi
+
+        echo "selecting ${app}"
+        sudo xcode-select -s "${app}"
+
+        # Prove the selection is usable rather than merely recorded. install_name_tool is the
+        # tool whose absence produced the original confusing failure, and it comes from the
+        # macOS SDK inside the selected Xcode.
+        xcodebuild -version
+        xcrun --find install_name_tool > /dev/null
+
+        echo "DEVELOPER_DIR=${app}/Contents/Developer" >> "$GITHUB_ENV"

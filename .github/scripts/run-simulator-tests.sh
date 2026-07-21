@@ -60,24 +60,48 @@ if [ -z "${APP_PATH}" ]; then
     exit 1
 fi
 
-echo "==> booting simulator (${SIMULATOR_DEVICE})"
-# Reuse an existing device of this type if there is one, so repeat local runs stay fast.
-udid="$(xcrun simctl list devices available --json \
+echo "==> selecting simulator"
+# Prefer the requested device, but fall back to any available iPhone rather than failing: which
+# device names exist depends on the installed Xcode, and pinning one couples this script to a
+# runner image that changes without notice. Newest runtime first, so the picked device is the
+# most current one available.
+selection="$(xcrun simctl list devices available --json \
     | python3 -c "
 import json, sys
-devices = json.load(sys.stdin)['devices']
-for runtime in sorted(devices, reverse=True):
-    for device in devices[runtime]:
-        if device['name'] == '${SIMULATOR_DEVICE}':
-            print(device['udid'])
-            raise SystemExit
+
+preferred = ${SIMULATOR_DEVICE@Q}
+runtimes = json.load(sys.stdin)['devices']
+
+def candidates():
+    for runtime in sorted(runtimes, reverse=True):
+        for device in runtimes[runtime]:
+            yield device
+
+for device in candidates():
+    if device['name'] == preferred:
+        print(device['udid'], device['name'], sep='\t')
+        raise SystemExit
+
+for device in candidates():
+    if device['name'].startswith('iPhone'):
+        print(device['udid'], device['name'], sep='\t')
+        raise SystemExit
 ")"
 
+udid="${selection%%$'\t'*}"
+device_name="${selection#*$'\t'}"
+
 if [ -z "${udid}" ]; then
-    echo "::error::no available simulator named '${SIMULATOR_DEVICE}'"
+    echo "::error::no available iPhone simulator to run on"
     xcrun simctl list devices available
     exit 1
 fi
+
+if [ "${device_name}" != "${SIMULATOR_DEVICE}" ]; then
+    echo "==> '${SIMULATOR_DEVICE}' is not available, using '${device_name}'"
+fi
+
+echo "==> booting ${device_name} (${udid})"
 
 xcrun simctl boot "${udid}" 2>/dev/null || true
 xcrun simctl bootstatus "${udid}" -b

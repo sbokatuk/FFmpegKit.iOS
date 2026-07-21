@@ -46,11 +46,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Pinned rather than left to the image default: the packages advertise net10.0-ios26.0, and
-      # that TFM only builds against an Xcode carrying the iOS 26 SDK. An image update that moved
-      # the default Xcode would otherwise change what the build produces with no source change.
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.0.app
+        uses: ./.github/actions/select-xcode
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -136,7 +133,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.0.app
+        uses: ./.github/actions/select-xcode
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -169,8 +166,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: simulator-test-logs
-          path: |
-            simulator-tests.log
-            tests/FFmpegKit.iOS.DeviceTests/xharness-results/**
+          path: simulator-tests.log
           if-no-files-found: ignore
           retention-days: 7
