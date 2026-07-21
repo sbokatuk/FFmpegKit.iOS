@@ -54,6 +54,12 @@ if [ -n "$NATIVE_VERSION" ]; then
     NATIVE_ARG="-p:FFmpegKitNativeVersion=$NATIVE_VERSION"
 fi
 
+# NuGet.config declares ./artifacts as a package source, and restore fails outright with NU1301
+# if a local source directory is missing - before anything here has had a chance to create it as
+# an output directory. A fresh clone only has it because an empty .gitkeep is committed, so make
+# the build independent of that surviving.
+mkdir -p "$OUTPUT"
+
 PASS1_DIR="$OUTPUT/.net9-pass"
 PASS2_DIR="$OUTPUT/.net10-pass"
 rm -rf "$PASS1_DIR" "$PASS2_DIR"
