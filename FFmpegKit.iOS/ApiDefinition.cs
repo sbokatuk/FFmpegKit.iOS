@@ -994,17 +994,17 @@ namespace Ffmpegkit.Ios
         // +(void)enableLogCallback:(LogCallback)logCallback;
         [Static]
         [Export("enableLogCallback:")]
-        void EnableLogCallback(LogCallback logCallback);
+        void EnableLogCallback([NullAllowed] LogCallback logCallback);
 
         // +(void)enableStatisticsCallback:(StatisticsCallback)statisticsCallback;
         [Static]
         [Export("enableStatisticsCallback:")]
-        void EnableStatisticsCallback(StatisticsCallback statisticsCallback);
+        void EnableStatisticsCallback([NullAllowed] StatisticsCallback statisticsCallback);
 
         // +(void)enableFFmpegSessionCompleteCallback:(FFmpegSessionCompleteCallback)ffmpegSessionCompleteCallback;
         [Static]
         [Export("enableFFmpegSessionCompleteCallback:")]
-        void EnableFFmpegSessionCompleteCallback(FFmpegSessionCompleteCallback ffmpegSessionCompleteCallback);
+        void EnableFFmpegSessionCompleteCallback([NullAllowed] FFmpegSessionCompleteCallback ffmpegSessionCompleteCallback);
 
         // +(FFmpegSessionCompleteCallback)getFFmpegSessionCompleteCallback;
         [Static]
@@ -1014,7 +1014,7 @@ namespace Ffmpegkit.Ios
         // +(void)enableFFprobeSessionCompleteCallback:(FFprobeSessionCompleteCallback)ffprobeSessionCompleteCallback;
         [Static]
         [Export("enableFFprobeSessionCompleteCallback:")]
-        void EnableFFprobeSessionCompleteCallback(FFprobeSessionCompleteCallback ffprobeSessionCompleteCallback);
+        void EnableFFprobeSessionCompleteCallback([NullAllowed] FFprobeSessionCompleteCallback ffprobeSessionCompleteCallback);
 
         // +(FFprobeSessionCompleteCallback)getFFprobeSessionCompleteCallback;
         [Static]
@@ -1024,7 +1024,7 @@ namespace Ffmpegkit.Ios
         // +(void)enableMediaInformationSessionCompleteCallback:(MediaInformationSessionCompleteCallback)mediaInformationSessionCompleteCallback;
         [Static]
         [Export("enableMediaInformationSessionCompleteCallback:")]
-        void EnableMediaInformationSessionCompleteCallback(MediaInformationSessionCompleteCallback mediaInformationSessionCompleteCallback);
+        void EnableMediaInformationSessionCompleteCallback([NullAllowed] MediaInformationSessionCompleteCallback mediaInformationSessionCompleteCallback);
 
         // +(MediaInformationSessionCompleteCallback)getMediaInformationSessionCompleteCallback;
         [Static]
