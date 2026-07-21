@@ -1,0 +1,176 @@
+name: build
+
+# Reusable pipeline: builds every FFmpegKit variant at a given version, validates the packed
+# packages, runs the simulator smoke tests, and uploads the packages as an artifact.
+# Callers (pr.yml, release.yml) decide the version and what to do with the result.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: NuGet version to stamp on every package.
+        required: true
+        type: string
+      native-version:
+        description: >
+          FFmpegKit native version to bind against. Defaults to FFmpegKitNativeVersion in
+          Directory.Build.props; set it to build a package for an older line, e.g. 7.1.1.
+        required: false
+        default: ''
+        type: string
+      e2e-variant:
+        description: Which variant the simulator smoke test installs and runs.
+        required: false
+        default: Video
+        type: string
+      e2e-target-framework:
+        description: >
+          Which of the package's target frameworks the simulator smoke test runs against.
+          Defaults to net10, whose assets are produced by the merge step in BuildNugets.sh and so
+          are the ones worth proving at runtime.
+        required: false
+        default: net10.0-ios26.0
+        type: string
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  pack:
+    name: build and pack
+    # iOS builds require a macOS runner with Xcode - there is no cross-platform path for the
+    # native toolchain, unlike the Android bindings which build on ubuntu.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned rather than left to the image default: the packages advertise net10.0-ios26.0, and
+      # that TFM only builds against an Xcode carrying the iOS 26 SDK. An image update that moved
+      # the default Xcode would otherwise change what the build produces with no source change.
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # 9.0.x packs net8+net9 (global.json pins it) and 10.0.x packs net10.
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Install iOS workloads for every SDK band
+        run: |
+          # Each band supplies different reference packs: net8.0-ios18.0 and net9.0-ios18.0 come
+          # from the .NET 9 band, net10.0-ios26.0 from the .NET 10 band. The SDK is chosen by the
+          # global.json in the working directory, so each band is installed from a scratch
+          # directory pinned to that SDK.
+          for major in 9 10; do
+            dir="${RUNNER_TEMP}/sdk${major}"
+            mkdir -p "${dir}"
+            sdk=$(dotnet --list-sdks | grep "^${major}\." | tail -1 | cut -d' ' -f1)
+            echo "installing ios workload for SDK ${sdk}"
+            ( cd "${dir}" \
+              && dotnet new globaljson --sdk-version "${sdk}" --force \
+              && dotnet workload install ios )
+          done
+
+      - name: Resolve native version
+        id: native
+        run: |
+          version="${{ inputs.native-version }}"
+          if [ -z "${version}" ]; then
+            version=$(sed -n 's:.*<FFmpegKitNativeVersion>\(.*\)</FFmpegKitNativeVersion>.*:\1:p' Directory.Build.props | head -1)
+          fi
+          if [ -z "${version}" ]; then
+            echo "::error::could not determine the FFmpegKit native version"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Binding FFmpegKit ${version}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cache FFmpegKit xcframeworks
+        id: xcframeworks
+        uses: actions/cache@v4
+        with:
+          path: FFmpegKit.iOS/libs
+          # The native version is part of the key: without it a build for an older line would
+          # restore the previous version's frameworks and bind the wrong thing.
+          key: ffmpegkit-xcframeworks-${{ steps.native.outputs.version }}-${{ hashFiles('FFmpegKit.iOS/FetchXcFrameworks.sh') }}
+
+      - name: Fetch FFmpegKit xcframeworks
+        if: steps.xcframeworks.outputs.cache-hit != 'true'
+        run: ./FFmpegKit.iOS/FetchXcFrameworks.sh "${{ steps.native.outputs.version }}"
+
+      - name: Pack all variants
+        run: ./FFmpegKit.iOS/BuildNugets.sh "${{ inputs.version }}" "${{ steps.native.outputs.version }}"
+
+      - name: Validate packages
+        run: dotnet test tests/FFmpegKit.iOS.PackageTests --logger 'trx;LogFileName=package-tests.trx'
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-test-results
+          path: '**/*.trx'
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e:
+    name: simulator smoke test
+    needs: pack
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Install iOS workload
+        run: |
+          # The device app is built for the target framework under test, so install the workload
+          # for the band that owns it. global.json pins .NET 9; the app may need .NET 10.
+          mkdir -p "${RUNNER_TEMP}/sdk10"
+          ( cd "${RUNNER_TEMP}/sdk10" \
+            && dotnet new globaljson --sdk-version "$(dotnet --list-sdks | grep '^10\.' | tail -1 | cut -d' ' -f1)" --force \
+            && dotnet workload install ios )
+          dotnet workload install ios
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      - name: Run smoke tests on simulator
+        run: ./.github/scripts/run-simulator-tests.sh "${{ inputs.e2e-variant }}" "${{ inputs.version }}" "${{ inputs.e2e-target-framework }}"
+
+      - name: Upload simulator logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-test-logs
+          path: |
+            simulator-tests.log
+            tests/FFmpegKit.iOS.DeviceTests/xharness-results/**
+          if-no-files-found: ignore
+          retention-days: 7

@@ -60,6 +60,7 @@ BenchmarkDotNet.Artifacts/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+!artifacts/.gitkeep
 
 # StyleCop
 StyleCopReport.xml
@@ -355,5 +356,6 @@ FFmpegKit.iOS/libs/
 # Public headers extracted from the vendored xcframework, staged for `sharpie bind` (see README)
 /Headers/
 
-# Built binding output copied into nuget staging folders
-Nugets/*/lib/
+# Raw `sharpie bind` output. Reconciled by hand into FFmpegKit.iOS/ApiDefinition.cs and
+# Structs.cs, which are the committed sources - this directory is scratch (see README).
+/Binding/

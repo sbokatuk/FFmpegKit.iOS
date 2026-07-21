@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Which of the package's target frameworks to exercise. Overriding TargetFramework directly
+      on the command line breaks restore, so it goes through a property of our own.
+    -->
+    <FFmpegKitDeviceTargetFramework Condition=" '$(FFmpegKitDeviceTargetFramework)' == '' ">net9.0-ios18.0</FFmpegKitDeviceTargetFramework>
+    <TargetFramework>$(FFmpegKitDeviceTargetFramework)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <CheckEolWorkloads>false</CheckEolWorkloads>
+
+    <ApplicationId>com.sbokatuk.ffmpegkit.devicetests</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
+
+    <!--
+      The smoke tests report through stdout, which the runner script streams back with
+      `simctl launch` in console-pty mode. Quietening the Mono logger keeps that stream to the
+      test output rather than runtime chatter.
+    -->
+    <MtouchExtraArgs>--setenv=MONO_LOG_LEVEL=error</MtouchExtraArgs>
+  </PropertyGroup>
+
+  <!--
+    The e2e deliberately consumes the packed NuGet from ./artifacts rather than a ProjectReference,
+    so it exercises the artifact that actually gets published. See NuGet.config for the local feed.
+  -->
+  <PropertyGroup>
+    <FFmpegKitVariant Condition=" '$(FFmpegKitVariant)' == '' ">Video</FFmpegKitVariant>
+    <FFmpegKitPackageVersion Condition=" '$(FFmpegKitPackageVersion)' == '' ">$(VersionPrefix)</FFmpegKitPackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FFmpegKit.Net.$(FFmpegKitVariant).iOS" Version="$(FFmpegKitPackageVersion)" />
+  </ItemGroup>
+
+</Project>

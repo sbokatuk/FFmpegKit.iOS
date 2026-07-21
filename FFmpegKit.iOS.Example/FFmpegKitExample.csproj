@@ -62,11 +62,21 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
 	</ItemGroup>
 
-	<!-- The generated FFmpegKit.FullGpl.iOS nuget (net8.0-ios FullGpl binding, built from
-	     ../FFmpegKit.iOS) — referenced via the local package source configured in
-	     nuget.config, pointing straight at the .nupkg in ../Nugets. -->
+	<!--
+	  Resolved from ./artifacts through the local feed in the repository's NuGet.config, not from
+	  nuget.org, so the sample always exercises your local build. Run BuildNugets.sh first. The
+	  version defaults to FFmpegKitNativeVersion; pass -p:FFmpegKitVersion=8.1.2-rc.1 to point it
+	  at a specific build.
+
+	  It references the Full (LGPL) variant deliberately - swapping to a -gpl one would make the
+	  sample itself GPL-3.0.
+	-->
+	<PropertyGroup>
+		<FFmpegKitVersion Condition=" '$(FFmpegKitVersion)' == '' ">$(FFmpegKitNativeVersion)</FFmpegKitVersion>
+	</PropertyGroup>
+
 	<ItemGroup>
-		<PackageReference Include="FFmpegKit.FullGpl.iOS" Version="4.5.1-beta2" />
+		<PackageReference Include="FFmpegKit.Net.Full.iOS" Version="$(FFmpegKitVersion)" />
 	</ItemGroup>
 
 </Project>

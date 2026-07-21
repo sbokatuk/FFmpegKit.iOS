@@ -5,13 +5,11 @@ VisualStudioVersion = 16.0.810.25
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFmpegKit.iOS", "FFmpegKit.iOS\FFmpegKit.iOS.csproj", "{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFmpegKit.iOS.PackageTests", "tests\FFmpegKit.iOS.PackageTests\FFmpegKit.iOS.PackageTests.csproj", "{9E3F229D-F864-4F27-B13F-D26C45B92425}"
+EndProject
 Global
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {C3E166B2-4877-47F1-8F14-BC75F3F7C555}
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
@@ -33,5 +31,26 @@ Global
 		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|x64.Build.0 = Release|Any CPU
 		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|x86.ActiveCfg = Release|Any CPU
 		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|x86.Build.0 = Release|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Debug|x64.Build.0 = Debug|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Debug|x86.Build.0 = Debug|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Release|x64.ActiveCfg = Release|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Release|x64.Build.0 = Release|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Release|x86.ActiveCfg = Release|Any CPU
+		{9E3F229D-F864-4F27-B13F-D26C45B92425}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9E3F229D-F864-4F27-B13F-D26C45B92425} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C3E166B2-4877-47F1-8F14-BC75F3F7C555}
 	EndGlobalSection
 EndGlobal

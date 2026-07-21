@@ -1,0 +1,41 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Version of the native FFmpegKit xcframeworks being bound. Also the default package version. -->
+    <FFmpegKitNativeVersion>8.1.2</FFmpegKitNativeVersion>
+    <VersionPrefix>$(FFmpegKitNativeVersion)</VersionPrefix>
+
+    <!-- Which FFmpegKit variant to build. CI builds each of these in turn. -->
+    <FFmpegKitBuildType Condition=" '$(FFmpegKitBuildType)' == '' ">Video</FFmpegKitBuildType>
+
+    <Authors>s.bokatuk</Authors>
+    <Company>s.bokatuk</Company>
+    <Copyright>Copyright © s.bokatuk</Copyright>
+    <PackageProjectUrl>https://github.com/sbokatuk/FFmpegKit.iOS</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/sbokatuk/FFmpegKit.iOS</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!--
+      No PackageLicenseExpression here: it is not one value for the whole repository. The C#
+      binding source is MIT, but each package also ships native FFmpegKit binaries that are
+      LGPL-3.0 or GPL-3.0 depending on the variant, so the expression is built per variant in
+      FFmpegKit.iOS.csproj.
+    -->
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition=" '$(GITHUB_ACTIONS)' == 'true' ">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!--
+    Give each variant its own obj/ and bin/ tree. All eight variants are built one after another
+    in the same working copy, and they differ only in which xcframeworks are linked in - shared
+    intermediate output would let one variant's native payload end up in the next one's package.
+  -->
+  <PropertyGroup Condition=" '$(MSBuildProjectName)' == 'FFmpegKit.iOS' ">
+    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)/obj/$(FFmpegKitBuildType)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildProjectDirectory)/bin/$(FFmpegKitBuildType)/</BaseOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+</Project>
