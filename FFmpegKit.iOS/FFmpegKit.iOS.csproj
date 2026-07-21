@@ -1,86 +1,53 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectTypeGuids>{8FFB629D-F513-41CE-95D2-7ECE97B6EEEC};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <ProjectGuid>{70F1FD49-8540-415E-8B7D-C620C3C5A6E9}</ProjectGuid>
-    <TemplateGuid>{b6f3ff35-79b2-4f25-a2fc-60a7cf61013b}</TemplateGuid>
-    <OutputType>Library</OutputType>
+    <TargetFramework>net8.0-ios</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>true</ImplicitUsings>
+    <IsBindingProject>true</IsBindingProject>
     <RootNamespace>Ffmpegkit.Ios</RootNamespace>
-    <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>FFmpegKit.iOS</AssemblyName>
-    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>portable</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\Nugets\Xamarin.FFmpegKit.Video.iOS\lib\Xamarin.iOS10</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <Optimize>true</Optimize>
-    <OutputPath>..\Nugets\Xamarin.FFmpegKit.Video.iOS\lib\Xamarin.iOS10</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="Xamarin.iOS" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Resources\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
+
   <ItemGroup>
     <ObjcBindingApiDefinition Include="ApiDefinition.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <ObjcBindingCoreSource Include="Structs.cs" />
   </ItemGroup>
+
   <ItemGroup>
-    <NativeReference Include="libs\ffmpegkit.framework">
+    <NativeReference Include="libs\ffmpegkit.xcframework">
       <Kind>Framework</Kind>
       <ForceLoad>True</ForceLoad>
       <IsCxx>True</IsCxx>
-      <Frameworks>VideoToolbox CoreMotion Accelerate</Frameworks>
+      <Frameworks>AudioToolbox AVFoundation CoreMedia VideoToolbox</Frameworks>
       <LinkerFlags>-lc++ -liconv -lbz2 -lz</LinkerFlags>
     </NativeReference>
-    <NativeReference Include="libs\libswscale.framework">
+    <NativeReference Include="libs\libswscale.xcframework">
       <Kind>Framework</Kind>
       <IsCxx>True</IsCxx>
     </NativeReference>
-    <NativeReference Include="libs\libswresample.framework">
+    <NativeReference Include="libs\libswresample.xcframework">
       <Kind>Framework</Kind>
       <IsCxx>True</IsCxx>
     </NativeReference>
-    <NativeReference Include="libs\libavutil.framework">
+    <NativeReference Include="libs\libavutil.xcframework">
       <Kind>Framework</Kind>
       <IsCxx>True</IsCxx>
     </NativeReference>
-    <NativeReference Include="libs\libavformat.framework">
+    <NativeReference Include="libs\libavformat.xcframework">
       <Kind>Framework</Kind>
       <IsCxx>True</IsCxx>
     </NativeReference>
-    <NativeReference Include="libs\libavfilter.framework">
+    <NativeReference Include="libs\libavfilter.xcframework">
       <Kind>Framework</Kind>
       <IsCxx>True</IsCxx>
     </NativeReference>
-    <NativeReference Include="libs\libavdevice.framework">
+    <NativeReference Include="libs\libavdevice.xcframework">
       <Kind>Framework</Kind>
       <IsCxx>True</IsCxx>
     </NativeReference>
-    <NativeReference Include="libs\libavcodec.framework">
+    <NativeReference Include="libs\libavcodec.xcframework">
       <Kind>Framework</Kind>
       <IsCxx>True</IsCxx>
     </NativeReference>
   </ItemGroup>
-  <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.ObjCBinding.CSharp.targets" />
 </Project>

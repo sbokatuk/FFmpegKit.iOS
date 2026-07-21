@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>FFmpegKit.FullGpl.iOS</id>
+    <title>.NET (net8.0-ios) bindings to the native iOS FFmpegKit FullGpl SDK.</title>
+    <version>4.5.1-beta2</version>
+    <authors>s.bokatuk</authors>
+    <owners>s.bokatuk</owners>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/sbokatuk/FFmpegKit.iOS</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>net8.0-ios bindings to the native FFmpegKit FullGpl SDK, for consumption from .NET MAUI / net8.0-ios projects.</description>
+    <summary>.NET MAUI / net8.0-ios bindings to the native FFmpegKit FullGpl SDK.</summary>
+    <tags>ffmpeg ffmpegkit fullgpl SDK maui net8.0-ios Binding</tags>
+    <icon>images/icon.png</icon>
+    <releaseNotes>
+
+nuget sources repository:
+https://github.com/sbokatuk/FFmpegKit.iOS
+
+    </releaseNotes>
+  </metadata>
+  <files>
+    <file src="lib/net8.0-ios18.0/*.dll" target="lib/net8.0-ios18.0" />
+    <file src="lib/net8.0-ios18.0/*.resources.zip" target="lib/net8.0-ios18.0" />
+    <file src="../icon.png" target="images/" />
+    <file src="README.txt" target="" />
+  </files>
+</package>

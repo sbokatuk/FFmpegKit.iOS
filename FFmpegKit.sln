@@ -3,23 +3,35 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.810.25
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFmpegKit.iOS", "FFmpegKit.iOS\FFmpegKit.iOS.csproj", "{70F1FD49-8540-415E-8B7D-C620C3C5A6E9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFmpegKit.iOS", "FFmpegKit.iOS\FFmpegKit.iOS.csproj", "{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}"
 EndProject
 Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{70F1FD49-8540-415E-8B7D-C620C3C5A6E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{70F1FD49-8540-415E-8B7D-C620C3C5A6E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{70F1FD49-8540-415E-8B7D-C620C3C5A6E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{70F1FD49-8540-415E-8B7D-C620C3C5A6E9}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C3E166B2-4877-47F1-8F14-BC75F3F7C555}
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Debug|x64.Build.0 = Debug|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Debug|x86.Build.0 = Debug|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|x64.ActiveCfg = Release|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|x64.Build.0 = Release|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|x86.ActiveCfg = Release|Any CPU
+		{8BCC31E6-A9A4-498F-AFB8-2593EDAC8550}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

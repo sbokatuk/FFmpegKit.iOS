@@ -294,9 +294,9 @@ namespace Ffmpegkit.Ios
     [BaseType(typeof(NSObject))]
     interface Statistics
     {
-        // -(instancetype)init:(long)sessionId videoFrameNumber:(int)videoFrameNumber videoFps:(float)videoFps videoQuality:(float)videoQuality size:(int64_t)size time:(int)time bitrate:(double)bitrate speed:(double)speed;
+        // -(instancetype)init:(long)sessionId videoFrameNumber:(int)videoFrameNumber videoFps:(float)videoFps videoQuality:(float)videoQuality size:(int64_t)size time:(double)time bitrate:(double)bitrate speed:(double)speed;
         [Export("init:videoFrameNumber:videoFps:videoQuality:size:time:bitrate:speed:")]
-        IntPtr Constructor(nint sessionId, int videoFrameNumber, float videoFps, float videoQuality, long size, int time, double bitrate, double speed);
+        IntPtr Constructor(nint sessionId, int videoFrameNumber, float videoFps, float videoQuality, long size, double time, double bitrate, double speed);
 
         // -(long)getSessionId;
         [Export("getSessionId")]
@@ -318,9 +318,9 @@ namespace Ffmpegkit.Ios
         [Export("getSize")]
         nint Size { get; }
 
-        // -(int)getTime;
+        // -(double)getTime;
         [Export("getTime")]
-        int Time { get; }
+        double Time { get; }
 
         // -(double)getBitrate;
         [Export("getBitrate")]
@@ -341,21 +341,25 @@ namespace Ffmpegkit.Ios
     [BaseType(typeof(AbstractSession))]
     interface FFmpegSession
     {
-        // -(instancetype)init:(NSArray *)arguments;
-        [Export("init:")]
-        IntPtr Constructor(NSObject[] arguments);
+        // +(instancetype)create:(NSArray *)arguments;
+        [Static]
+        [Export("create:")]
+        FFmpegSession Create(NSObject[] arguments);
 
-        // -(instancetype)init:(NSArray *)arguments withCompleteCallback:(FFmpegSessionCompleteCallback)completeCallback;
-        [Export("init:withCompleteCallback:")]
-        IntPtr Constructor(NSObject[] arguments, FFmpegSessionCompleteCallback completeCallback);
+        // +(instancetype)create:(NSArray *)arguments withCompleteCallback:(FFmpegSessionCompleteCallback)completeCallback;
+        [Static]
+        [Export("create:withCompleteCallback:")]
+        FFmpegSession Create(NSObject[] arguments, FFmpegSessionCompleteCallback completeCallback);
 
-        // -(instancetype)init:(NSArray *)arguments withCompleteCallback:(FFmpegSessionCompleteCallback)completeCallback withLogCallback:(LogCallback)logCallback withStatisticsCallback:(StatisticsCallback)statisticsCallback;
-        [Export("init:withCompleteCallback:withLogCallback:withStatisticsCallback:")]
-        IntPtr Constructor(NSObject[] arguments, FFmpegSessionCompleteCallback completeCallback, LogCallback logCallback, StatisticsCallback statisticsCallback);
+        // +(instancetype)create:(NSArray *)arguments withCompleteCallback:(FFmpegSessionCompleteCallback)completeCallback withLogCallback:(LogCallback)logCallback withStatisticsCallback:(StatisticsCallback)statisticsCallback;
+        [Static]
+        [Export("create:withCompleteCallback:withLogCallback:withStatisticsCallback:")]
+        FFmpegSession Create(NSObject[] arguments, FFmpegSessionCompleteCallback completeCallback, LogCallback logCallback, StatisticsCallback statisticsCallback);
 
-        // -(instancetype)init:(NSArray *)arguments withCompleteCallback:(FFmpegSessionCompleteCallback)completeCallback withLogCallback:(LogCallback)logCallback withStatisticsCallback:(StatisticsCallback)statisticsCallback withLogRedirectionStrategy:(LogRedirectionStrategy)logRedirectionStrategy;
-        [Export("init:withCompleteCallback:withLogCallback:withStatisticsCallback:withLogRedirectionStrategy:")]
-        IntPtr Constructor(NSObject[] arguments, FFmpegSessionCompleteCallback completeCallback, LogCallback logCallback, StatisticsCallback statisticsCallback, LogRedirectionStrategy logRedirectionStrategy);
+        // +(instancetype)create:(NSArray *)arguments withCompleteCallback:(FFmpegSessionCompleteCallback)completeCallback withLogCallback:(LogCallback)logCallback withStatisticsCallback:(StatisticsCallback)statisticsCallback withLogRedirectionStrategy:(LogRedirectionStrategy)logRedirectionStrategy;
+        [Static]
+        [Export("create:withCompleteCallback:withLogCallback:withStatisticsCallback:withLogRedirectionStrategy:")]
+        FFmpegSession Create(NSObject[] arguments, FFmpegSessionCompleteCallback completeCallback, LogCallback logCallback, StatisticsCallback statisticsCallback, LogRedirectionStrategy logRedirectionStrategy);
 
         // -(StatisticsCallback)getStatisticsCallback;
         [Export("getStatisticsCallback")]

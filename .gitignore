@@ -348,3 +348,12 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# Downloaded native FFmpegKit xcframeworks (too large to commit; see README for how to fetch)
+FFmpegKit.iOS/libs/
+
+# Public headers extracted from the vendored xcframework, staged for `sharpie bind` (see README)
+/Headers/
+
+# Built binding output copied into nuget staging folders
+Nugets/*/lib/
