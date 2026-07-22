@@ -2,16 +2,19 @@
 
   <PropertyGroup>
     <!--
-      Version of the native binaries being bound, and the default package version.
+      Package versions are <ffmpeg version>.<binding revision>, e.g. 8.1.2.1.
 
-      This is the FFmpeg version, not the FFmpegKit one: upstream tags its releases by the FFmpeg
-      build they contain (8.1.2), while the FFmpegKit Objective-C wrapper inside them is 6.0.
-      Note the Android bindings number the other way round - their 8.1.7 is the FFmpegKit version,
-      wrapping the same FFmpeg 8.1.2 - so the two repositories' version numbers are not comparable.
-      See the README.
+      The first three components are the FFmpeg build inside the package, which is also what
+      upstream tags its releases with and what FetchXcFrameworks.sh downloads. The fourth belongs
+      to this repository and increments whenever the bindings or packaging change while the
+      native binaries stay put.
+
+      The Android bindings number their packages differently, so the two repositories' versions
+      are not comparable - do not read one as newer than the other.
     -->
     <FFmpegKitNativeVersion>8.1.2</FFmpegKitNativeVersion>
-    <VersionPrefix>$(FFmpegKitNativeVersion)</VersionPrefix>
+    <FFmpegKitBindingRevision>1</FFmpegKitBindingRevision>
+    <VersionPrefix>$(FFmpegKitNativeVersion).$(FFmpegKitBindingRevision)</VersionPrefix>
 
     <!-- Which FFmpegKit variant to build. CI builds each of these in turn. -->
     <FFmpegKitBuildType Condition=" '$(FFmpegKitBuildType)' == '' ">Video</FFmpegKitBuildType>

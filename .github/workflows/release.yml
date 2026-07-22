@@ -30,10 +30,10 @@ jobs:
             exit 1
           fi
 
-          # The tag drives which native FFmpegKit version is bound, so an older line is released
-          # simply by tagging it - v7.1.1 builds against FFmpegKit 7.1.1. Any prerelease suffix is
-          # dropped, and a fourth version component is treated as a binding-only revision:
-          # v8.1.2.1 still binds native 8.1.2.
+          # The tag drives which FFmpeg build is bound, so an older line is released simply by
+          # tagging it - v7.1.1.1 builds against FFmpeg 7.1.1. Any prerelease suffix is dropped,
+          # and the fourth component is this repository's binding revision, not part of the
+          # FFmpeg version: v8.1.2.6 still binds FFmpeg 8.1.2.
           native=$(printf '%s' "${version%%-*}" | cut -d. -f1-3)
           echo "native-version=${native}" >> "$GITHUB_OUTPUT"
 
@@ -107,13 +107,6 @@ jobs:
           # Resolved from the tag, not Directory.Build.props, so a release of an older line
           # reports the version it actually bound rather than whatever the branch defaults to.
           native="${{ needs.version.outputs.native-version }}"
-
-          # The FFmpegKit wrapper version is read out of the package being published rather than
-          # written here: the release is numbered by its FFmpeg version, the wrapper carries its
-          # own, and a number repeated in prose goes stale the moment upstream rebuilds against a
-          # newer one. Not fatal - a release should not fail over a sentence - so the clause is
-          # simply omitted if it cannot be determined.
-          api="$(python3 build/wrapper-version.py artifacts || true)"
           previous=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
 
           # A curated docs/release-notes/<version>.md replaces the generated commit list when one
@@ -147,19 +140,13 @@ jobs:
 
             echo "## Packages"
             echo
-            # "FFmpeg", not "FFmpegKit": upstream tags these releases by the FFmpeg build they
-            # contain, while the FFmpegKit wrapper inside carries a version of its own. The
-            # Android bindings number by the wrapper instead, so saying FFmpegKit here would
-            # imply the two repositories' numbers are comparable when they are not.
-            if [ -n "${api}" ]; then
-              echo "Bound against FFmpeg \`${native}\` wrapped by the FFmpegKit \`${api}\` API, targeting \`net8.0-ios18.0\`, \`net9.0-ios18.0\` and \`net10.0-ios26.0\`."
-              echo
-              echo "> The package version is the **FFmpeg** version. The FFmpegKit wrapper around it is versioned"
-              echo "> separately, hence both numbers above. The [Android bindings](https://github.com/sbokatuk/FFmpegKit.Android)"
-              echo "> number by the wrapper instead, so their version is not comparable with this one."
-            else
-              echo "Bound against FFmpeg \`${native}\`, targeting \`net8.0-ios18.0\`, \`net9.0-ios18.0\` and \`net10.0-ios26.0\`."
-            fi
+            # "FFmpeg", not "FFmpegKit": the first three components of the package version are
+            # the FFmpeg build inside it, and the fourth is this repository's binding revision.
+            echo "Bound against FFmpeg \`${native}\`, targeting \`net8.0-ios18.0\`, \`net9.0-ios18.0\` and \`net10.0-ios26.0\`."
+            echo
+            echo "> The first three components of \`${VERSION}\` are the FFmpeg version; the fourth is this"
+            echo "> repository's binding revision. The [Android bindings](https://github.com/sbokatuk/FFmpegKit.Android)"
+            echo "> number their packages differently, so the two version numbers are not comparable."
             echo
             echo "| Package | License | NuGet |"
             echo "| --- | --- | --- |"
