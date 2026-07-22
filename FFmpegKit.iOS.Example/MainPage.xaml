@@ -42,7 +42,15 @@
                     Clicked="OnExtractAudioClicked" />
             </Grid>
 
+            <Button
+                x:Name="CancelButton"
+                Text="Cancel"
+                IsEnabled="False"
+                Clicked="OnCancelClicked" />
+
             <ActivityIndicator x:Name="Busy" IsRunning="False" IsVisible="False" />
+
+            <ProgressBar x:Name="Progress" Progress="0" IsVisible="False" />
 
             <Label
                 x:Name="StatusLabel"

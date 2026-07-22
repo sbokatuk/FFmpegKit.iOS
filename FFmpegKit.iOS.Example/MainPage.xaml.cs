@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using CommunityToolkit.Maui.Views;
 using Ffmpegkit.Ios;
 
@@ -7,6 +9,8 @@ public partial class MainPage : ContentPage
 {
 	const string SampleAssetName = "sample.mp4";
 	string _sourcePath = string.Empty;
+	CancellationTokenSource? _cancellation;
+	double _sourceDurationMs;
 
 	public MainPage()
 	{
@@ -20,6 +24,13 @@ public partial class MainPage : ContentPage
 		StatusLabel.Text = "Preparing source video…";
 		_sourcePath = await CopySampleToCacheAsync();
 		SourcePlayer.Source = MediaSource.FromFile(_sourcePath);
+
+		// Probed for its duration so the statistics callback below can be shown as a percentage.
+		// FFprobe reports seconds as a string; a failure here only costs the progress bar.
+		var probe = await FFprobeKit.GetMediaInformationAsync(_sourcePath);
+		if (double.TryParse(probe.MediaInformation?.Duration, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds))
+			_sourceDurationMs = seconds * 1000;
+
 		StatusLabel.Text = "Ready. Choose an operation.";
 	}
 
@@ -67,29 +78,63 @@ public partial class MainPage : ContentPage
 		if (File.Exists(outputPath))
 			File.Delete(outputPath);
 
-		var command = buildCommand(outputPath);
+		_cancellation = new CancellationTokenSource();
 
-		var (success, message) = await Task.Run(() =>
+		// Statistics arrive on FFmpegKit's own thread, so the UI update is marshalled back.
+		FFmpegKitConfig.EnableStatisticsCallback(statistics =>
 		{
-			var session = FFmpegKit.Execute(command);
-			var returnCode = session.ReturnCode;
-			var ok = returnCode is not null && returnCode.IsValueSuccess;
-			var log = ok
-				? $"success, {session.Duration} ms, {session.State}"
-				: $"failed (code {returnCode?.Value}): {session.FailStackTrace}";
-			return (ok, log);
+			if (_sourceDurationMs <= 0)
+				return;
+
+			var fraction = Math.Clamp(statistics.Time / _sourceDurationMs, 0, 1);
+			MainThread.BeginInvokeOnMainThread(() => Progress.Progress = fraction);
 		});
 
-		if (success)
-			ResultPlayer.Source = MediaSource.FromFile(outputPath);
+		try
+		{
+			// Awaited directly: FFmpegKit.ExecuteAsync wraps the native completion callback, so
+			// no Task.Run is needed to keep the UI responsive.
+			var session = await FFmpegKit.ExecuteAsync(buildCommand(outputPath), _cancellation.Token);
 
-		SetBusy(false, $"{operationTitle} — {message}");
+			var returnCode = session.ReturnCode;
+			var message = returnCode switch
+			{
+				null => "no return code",
+				{ IsValueSuccess: true } => $"success, {session.Duration} ms, {session.State}",
+				{ IsValueCancel: true } => "cancelled",
+				_ => $"failed (code {returnCode.Value}): {session.FailStackTrace}",
+			};
+
+			if (returnCode is { IsValueSuccess: true })
+				ResultPlayer.Source = MediaSource.FromFile(outputPath);
+
+			SetBusy(false, $"{operationTitle} — {message}");
+		}
+		finally
+		{
+			// Passing null clears the callback; leaving it registered would keep updating the
+			// progress bar during the next operation.
+			FFmpegKitConfig.EnableStatisticsCallback(null!);
+			_cancellation.Dispose();
+			_cancellation = null;
+		}
+	}
+
+	void OnCancelClicked(object sender, EventArgs e)
+	{
+		// Cancellation is co-operative: FFmpeg stops as soon as it notices, and the awaited
+		// session then completes with a cancelled return code rather than throwing.
+		_cancellation?.Cancel();
+		StatusLabel.Text = "Cancelling…";
 	}
 
 	void SetBusy(bool isBusy, string status)
 	{
 		Busy.IsVisible = isBusy;
 		Busy.IsRunning = isBusy;
+		Progress.IsVisible = isBusy;
+		Progress.Progress = 0;
+		CancelButton.IsEnabled = isBusy;
 		ResizeButton.IsEnabled = !isBusy;
 		GrayscaleButton.IsEnabled = !isBusy;
 		ExtractAudioButton.IsEnabled = !isBusy;

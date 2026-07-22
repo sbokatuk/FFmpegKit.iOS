@@ -125,6 +125,43 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  sample:
+    name: build sample app
+    needs: pack
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: ./.github/actions/select-xcode
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui-ios
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      # The sample consumes the packed package exactly as a user would, so it is the only thing
+      # that checks the API is still usable the way the README documents. It regressed silently
+      # once already: regenerating the binding turned session.ReturnCode() and session.State()
+      # into properties, and nothing built the sample to notice.
+      #
+      # Build only - the device tests already prove the binding runs. Both target frameworks the
+      # .NET 9 band covers are built; the sample deliberately does not target net10.
+      - name: Build the sample against the packed package
+        run: |
+          dotnet build FFmpegKit.iOS.Example/FFmpegKitExample.csproj \
+            --configuration Release \
+            -p:FFmpegKitVersion="${{ inputs.version }}"
+
   e2e:
     name: simulator smoke test
     needs: pack
