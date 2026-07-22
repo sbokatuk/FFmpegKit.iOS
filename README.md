@@ -1,6 +1,12 @@
 # FFmpegKit.iOS
 
+[![NuGet](https://img.shields.io/nuget/v/FFmpegKit.Net.Video.iOS?label=nuget)](https://www.nuget.org/packages/FFmpegKit.Net.Video.iOS)
+[![Bindings: MIT](https://img.shields.io/badge/bindings-MIT-blue)](LICENSE)
+[![Packages: LGPL-3.0 or GPL-3.0](https://img.shields.io/badge/packages-LGPL--3.0%20or%20GPL--3.0-orange)](#license)
+
 .NET for iOS and .NET MAUI bindings for the native **FFmpegKit** library.
+
+> GitHub reports this repository as MIT because that is what it contains: binding source only, no native binaries. **The published packages are not MIT** — they embed native FFmpeg builds and are additionally covered by LGPL-3.0, or GPL-3.0 for the `-gpl` variants. See [License](#license).
 
 Built against the prebuilt Apple binaries from **[sk3llo/ffmpeg_kit_flutter](https://github.com/sk3llo/ffmpeg_kit_flutter)** — see [Where the native binaries come from](#where-the-native-binaries-come-from) for why that fork and not the original.
 
@@ -58,7 +64,7 @@ The first three components name the FFmpeg build the package contains, which is 
 
 A floating range such as `8.1.2.*` therefore always resolves to the newest bindings for that exact FFmpeg build and never crosses onto another one. Pin an exact version instead if you would rather approve every binding update yourself.
 
-> The [Android bindings](https://github.com/sbokatuk/FFmpegKit.Android) number their packages differently, so **the two repositories' version numbers are not comparable** — a higher number there does not mean newer FFmpeg. The two also wrap different upstream builds, so their APIs are not identical.
+> The [Android bindings](https://github.com/sbokatuk/FFmpegKit.Android) use the same scheme, and currently track the same FFmpeg line — `8.1.2` on both. The **binding revisions advance independently**, so the fourth component will differ between the two. They also wrap different upstream FFmpegKit builds, so the APIs are not identical.
 
 ### Releasing an older line
 
