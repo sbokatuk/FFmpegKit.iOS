@@ -24,15 +24,15 @@ FFmpegKit has several relevant repositories, and only one of them still ships us
 | [`ffmpegkit-maintained/ffmpeg-kit-ios-full`](https://github.com/ffmpegkit-maintained/ffmpeg-kit-ios-full) | stale | yes, but FFmpeg **6.0**, `full-gpl` only, no releases or tags to pin |
 | [`sk3llo/ffmpeg_kit_flutter`](https://github.com/sk3llo/ffmpeg_kit_flutter) | active | **yes** — all eight variants, currently `8.1.2` |
 
-Note that this is *not* the same source as the Android bindings use: [`FFmpegKit.Android`](https://github.com/sbokatuk/FFmpegKit.Android) takes its `.aar` files from `ffmpegkit-maintained/ffmpeg` via Maven Central, and that fork does not build for Apple platforms. The two repositories therefore track **different version lines** — Android is on `8.1.7`, iOS on `8.1.2`. Both keep the original `com.arthenica` API, so the bindings themselves are unaffected.
+Note that this is *not* the same source as the Android bindings use: [`FFmpegKit.Android`](https://github.com/sbokatuk/FFmpegKit.Android) takes its `.aar` files from `ffmpegkit-maintained/ffmpeg` via Maven Central, and that fork does not build for Apple platforms.
 
 Releases there are tagged `<version>-<variant>` and carry each xcframework as a separate zip plus a `checksums.json`. [`FetchXcFrameworks.sh`](FFmpegKit.iOS/FetchXcFrameworks.sh) downloads all eight and verifies every one against that manifest — these are tens of megabytes of native code that gets linked into your app, so a truncated or substituted archive fails the build rather than shipping.
 
 The version is set by `FFmpegKitNativeVersion` in [`Directory.Build.props`](Directory.Build.props), which `FetchXcFrameworks.sh` reads, so the download and the frameworks the project expects cannot drift apart.
 
-The fork currently publishes four lines, each with all eight variants:
+The fork currently publishes four FFmpeg lines, each with all eight variants:
 
-| FFmpegKit | Architectures | Simulator |
+| FFmpeg | Architectures | Simulator |
 | --- | --- | --- |
 | `7.1.1` | `arm64`, `arm64e` | `arm64`, `x86_64` |
 | `8.0.0` | `arm64`, `arm64e` | `arm64`, `x86_64` |
@@ -41,9 +41,26 @@ The fork currently publishes four lines, each with all eight variants:
 
 Upstream also ships a macOS slice in each xcframework. It is stripped on download: it cannot be reached from a `net*-ios` binding, but it would still be embedded in the package once per target framework. Keeping it would push the `FullGpl` package past nuget.org's 250 MB limit. If you need macOS or Mac Catalyst, note that **no Mac Catalyst slice is published at all**, so that would need a different source.
 
+### Versioning
+
+Package versions are **`<ffmpeg version>.<binding revision>`**:
+
+```
+8.1.2.1
+└───┬─┘ └┬┘
+    │    └─ binding revision — this repository
+    └────── FFmpeg version — the native build inside the package
+```
+
+The first three components name the FFmpeg build the package contains, which is also the version [`FetchXcFrameworks.sh`](FFmpegKit.iOS/FetchXcFrameworks.sh) downloads and what upstream tags its releases with. The fourth belongs to this repository and increments whenever the bindings or packaging change while the native binaries stay put — `8.1.2.1` and `8.1.2.2` are the same FFmpeg with different bindings.
+
+A floating range such as `8.1.2.*` therefore always resolves to the newest bindings for that exact FFmpeg build and never crosses onto another one. Pin an exact version instead if you would rather approve every binding update yourself.
+
+> The [Android bindings](https://github.com/sbokatuk/FFmpegKit.Android) number their packages differently, so **the two repositories' version numbers are not comparable** — a higher number there does not mean newer FFmpeg. The two also wrap different upstream builds, so their APIs are not identical.
+
 ### Releasing an older line
 
-Package version and native version are the same number, so the tag selects both: **`v7.1.1` builds against FFmpegKit 7.1.1** and publishes `7.1.1` packages. A prerelease suffix is ignored when resolving the native version (`v8.1.2-beta.1` → native `8.1.2`), and a fourth component marks a binding-only revision (`v8.1.2.1` → native `8.1.2`). No branch or `Directory.Build.props` edit is needed.
+The tag selects the FFmpeg line: the first three components of **`v7.1.1.1`** are the FFmpeg version to build against, so that tag binds FFmpeg `7.1.1` and publishes `7.1.1.1` packages. The fourth component is the binding revision and does not affect which native build is fetched (`v8.1.2.6` → FFmpeg `8.1.2`), and a prerelease suffix is ignored too (`v8.1.2.1-beta.1` → FFmpeg `8.1.2`). No branch or `Directory.Build.props` edit is needed.
 
 Locally, pass the native version as the second argument:
 
@@ -92,7 +109,7 @@ Install the package via NuGet. There are various packages depending on what you 
 | FFmpegKit.Net.MinGpl.iOS | [![NuGet](https://img.shields.io/nuget/v/FFmpegKit.Net.MinGpl.iOS.svg?label=NuGet)](https://www.nuget.org/packages/FFmpegKit.Net.MinGpl.iOS) |
 | FFmpegKit.Net.Video.iOS | [![NuGet](https://img.shields.io/nuget/v/FFmpegKit.Net.Video.iOS.svg?label=NuGet)](https://www.nuget.org/packages/FFmpegKit.Net.Video.iOS) |
 
-A package version is its FFmpegKit version plus a binding revision — `8.1.2.1` is FFmpegKit `8.1.2`, binding revision `1`. A floating range such as `8.*` therefore always resolves to the newest bindings for that FFmpeg line and never crosses into another one. Pin an exact version instead if you would rather approve every binding update yourself.
+A package version is its FFmpeg version plus a binding revision — see [Versioning](#versioning). `8.1.2.*` floats to the newest bindings for FFmpeg `8.1.2` without ever crossing onto another FFmpeg build.
 
 ### Migrating from `FFmpegKit.FullGpl.iOS` / `FFmpegKit.Video.iOS`
 
@@ -123,7 +140,19 @@ using Ffmpegkit.Ios;
 Execute your FFmpeg command:
 
 ```c#
-FFmpegKit.Execute("-i input.mov -c:v libx264 output.mp4");
+var session = await FFmpegKit.ExecuteAsync("-i input.mov -c:v libx264 output.mp4");
+
+if (session.Succeeded())
+    Console.WriteLine("done");
+```
+
+`ExecuteAsync` wraps FFmpegKit's own asynchronous path, so nothing blocks the calling thread. Pass a `CancellationToken` to stop a running command — the session then completes with a cancelled return code rather than throwing. A synchronous `FFmpegKit.Execute` is also bound, but it blocks for the whole transcode, which on the UI thread means a frozen app.
+
+Probing works the same way:
+
+```c#
+var probe = await FFprobeKit.GetMediaInformationAsync(path);
+Console.WriteLine(probe.MediaInformation?.Format);
 ```
 
 More examples and usage can be found in the [original FFmpegKit wiki](https://github.com/arthenica/ffmpeg-kit/wiki/iOS). That repository is archived, but the Objective-C API it documents is the one these bindings expose, so it remains the reference.
@@ -225,7 +254,7 @@ Setup on nuget.org (**Account → Trusted Publishing**): a policy binds to exact
 | Repository Owner | `sbokatuk` |
 | Repository | `FFmpegKit.iOS` — the name only, not a URL |
 | Workflow File | `pr.yml` for one policy, `release.yml` for the other |
-| Environment | `production` — must match `environment:` on the publish job |
+| Environment | `nuget.org` — must match `environment:` on the publish job |
 
 Set a `NUGET_USER` secret if the nuget.org profile name ever changes.
 

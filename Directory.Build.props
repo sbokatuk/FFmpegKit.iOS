@@ -1,9 +1,20 @@
 <Project>
 
   <PropertyGroup>
-    <!-- Version of the native FFmpegKit xcframeworks being bound. Also the default package version. -->
+    <!--
+      Package versions are <ffmpeg version>.<binding revision>, e.g. 8.1.2.1.
+
+      The first three components are the FFmpeg build inside the package, which is also what
+      upstream tags its releases with and what FetchXcFrameworks.sh downloads. The fourth belongs
+      to this repository and increments whenever the bindings or packaging change while the
+      native binaries stay put.
+
+      The Android bindings number their packages differently, so the two repositories' versions
+      are not comparable - do not read one as newer than the other.
+    -->
     <FFmpegKitNativeVersion>8.1.2</FFmpegKitNativeVersion>
-    <VersionPrefix>$(FFmpegKitNativeVersion)</VersionPrefix>
+    <FFmpegKitBindingRevision>1</FFmpegKitBindingRevision>
+    <VersionPrefix>$(FFmpegKitNativeVersion).$(FFmpegKitBindingRevision)</VersionPrefix>
 
     <!-- Which FFmpegKit variant to build. CI builds each of these in turn. -->
     <FFmpegKitBuildType Condition=" '$(FFmpegKitBuildType)' == '' ">Video</FFmpegKitBuildType>

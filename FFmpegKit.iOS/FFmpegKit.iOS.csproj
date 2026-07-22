@@ -140,7 +140,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>FFmpegKit.Net.$(FFmpegKitBuildType).iOS</PackageId>
     <Title>.NET for iOS bindings for the native FFmpegKit $(FFmpegKitBuildType) SDK.</Title>
-    <Description>.NET for iOS / .NET MAUI bindings for the native FFmpegKit $(FFmpegKitBuildType) SDK. Built against FFmpegKit $(FFmpegKitNativeVersion). The bundled native FFmpeg binaries are licensed under $(FFmpegKitNativeLicense); the binding code is MIT. See the licence files in this package before shipping.</Description>
+    <Description>.NET for iOS / .NET MAUI bindings for the native FFmpegKit $(FFmpegKitBuildType) SDK. Built against FFmpeg $(FFmpegKitNativeVersion). The bundled native FFmpeg binaries are licensed under $(FFmpegKitNativeLicense); the binding code is MIT. See the licence files in this package before shipping.</Description>
     <PackageLicenseExpression>MIT AND $(FFmpegKitNativeLicense)</PackageLicenseExpression>
     <PackageTags>ffmpeg;ffmpegkit;$(FFmpegKitVariantName);video;audio;transcode;SDK;MAUI;iOS;dotnet-ios;Binding</PackageTags>
     <PackageIcon>icon.png</PackageIcon>

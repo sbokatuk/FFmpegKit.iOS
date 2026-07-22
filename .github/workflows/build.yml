@@ -40,17 +40,15 @@ env:
 jobs:
   pack:
     name: build and pack
+    timeout-minutes: 60
     # iOS builds require a macOS runner with Xcode - there is no cross-platform path for the
     # native toolchain, unlike the Android bindings which build on ubuntu.
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
-      # Pinned rather than left to the image default: the packages advertise net10.0-ios26.0, and
-      # that TFM only builds against an Xcode carrying the iOS 26 SDK. An image update that moved
-      # the default Xcode would otherwise change what the build produces with no source change.
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.0.app
+        uses: ./.github/actions/select-xcode
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -128,15 +126,61 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  e2e:
-    name: simulator smoke test
+  sample:
+    name: build sample app
+    timeout-minutes: 20
     needs: pack
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.0.app
+        uses: ./.github/actions/select-xcode
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install MAUI workload
+        run: dotnet workload install maui-ios
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      # The sample consumes the packed package exactly as a user would, so it is the only thing
+      # that checks the API is still usable the way the README documents. It regressed silently
+      # once already: regenerating the binding turned session.ReturnCode() and session.State()
+      # into properties, and nothing built the sample to notice.
+      #
+      # Debug, and pinned to the simulator, because this is a compile check and nothing here is
+      # shipped. Release on a MAUI app pulls in the trimmer and LLVM (MtouchUseLlvm defaults to
+      # true) and then statically links ~150 MB of FFmpeg per target framework: measured locally
+      # at 7m43s against 19s for this command, and a runner is far slower still - the first
+      # attempt at this job was killed after 48 minutes.
+      #
+      # Both target frameworks the .NET 9 band covers are built, since at this cost it is free.
+      # The sample deliberately does not target net10; the device tests cover that.
+      - name: Build the sample against the packed package
+        run: |
+          dotnet build FFmpegKit.iOS.Example/FFmpegKitExample.csproj \
+            --configuration Debug \
+            -p:RuntimeIdentifier=iossimulator-arm64 \
+            -p:FFmpegKitVersion="${{ inputs.version }}"
+
+  e2e:
+    name: simulator smoke test
+    timeout-minutes: 45
+    needs: pack
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: ./.github/actions/select-xcode
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -169,8 +213,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: simulator-test-logs
-          path: |
-            simulator-tests.log
-            tests/FFmpegKit.iOS.DeviceTests/xharness-results/**
+          path: simulator-tests.log
           if-no-files-found: ignore
           retention-days: 7

@@ -23,8 +23,11 @@ public static class SmokeTests
         new("encodes from pre-split arguments", EncodesFromArguments),
         new("ffprobe reads back the encoded file", FFprobeReadsBackTheEncodedFile),
         new("failing command reports a non-success return code", FailingCommandIsReportedAsFailure),
-        new("completes an async execute", AsyncExecuteCompletes),
+        new("awaits an async execute", AsyncExecuteCompletes),
+        new("awaits an async ffprobe", AsyncProbeReturnsMediaInformation),
+        new("cancels a running command", CancellationStopsACommand),
         new("reports a completed session state", SessionStateIsCompleted),
+        new("exposes enum-typed log level and helpers", ErgonomicHelpersWork),
         new("delivers log output to a delegate", LogDelegateReceivesOutput),
     ];
 
@@ -127,25 +130,54 @@ public static class SmokeTests
         WriteRawFrames(input);
         File.Delete(output);
 
-        // There is no idiomatic Task-based wrapper on the iOS binding yet, so the native
-        // completion callback is bridged here. Getting a callback back across the binding at all
-        // is the thing worth proving.
-        using var completed = new ManualResetEventSlim(false);
-        FFmpegSession? completedSession = null;
+        // Exercises the Task-based wrapper, which bridges FFmpegKit's completion callback back
+        // across the binding. Blocking on the task is fine here - the point is the round trip.
+        var session = FFmpeg.ExecuteAsync(BuildEncodeCommand(input, output)).GetAwaiter().GetResult();
 
-        FFmpeg.ExecuteAsync(
-            BuildEncodeCommand(input, output),
-            session =>
-            {
-                completedSession = session;
-                completed.Set();
-            });
-
-        Assert(completed.Wait(TimeSpan.FromSeconds(60)), "The async command never completed.");
-        Assert(completedSession is not null, "The completion callback delivered no session.");
-
-        AssertSuccess(completedSession!, "async encode");
+        AssertSuccess(session, "async encode");
         Assert(File.Exists(output), $"'{output}' was not produced.");
+    }
+
+    private static void AsyncProbeReturnsMediaInformation(string workingDirectory)
+    {
+        var output = Path.Combine(workingDirectory, "async.mp4");
+        Assert(File.Exists(output), "The async encode check must run before this one.");
+
+        var session = FFprobeKit.GetMediaInformationAsync(output).GetAwaiter().GetResult();
+
+        Assert(session.MediaInformation is not null, "Async FFprobe returned no media information.");
+        Report($"async probe format={session.MediaInformation!.Format}");
+    }
+
+    private static void CancellationStopsACommand(string workingDirectory)
+    {
+        var input = Path.Combine(workingDirectory, "long.raw");
+        var output = Path.Combine(workingDirectory, "cancelled.mp4");
+        WriteRawFrames(input, frameCount: 4000);
+        File.Delete(output);
+
+        using var cancellation = new CancellationTokenSource();
+
+        // Upscaling several thousand frames keeps FFmpeg busy long enough to cancel mid-run.
+        var task = FFmpeg.ExecuteAsync(
+            $"-y -f rawvideo -pixel_format rgb24 -video_size {FrameWidth}x{FrameHeight} " +
+            $"-framerate 30 -i \"{input}\" -vf scale=1280:720 -c:v mpeg4 \"{output}\"",
+            cancellation.Token);
+
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(300));
+
+        // Cancelling must complete the task rather than hang or throw...
+        Assert(task.Wait(TimeSpan.FromSeconds(60)), "The cancelled command never completed.");
+
+        // ...and must actually have stopped FFmpeg. Several thousand frames upscaled to 720p
+        // cannot finish in 300ms on any device this runs on, so a success code here would mean
+        // the token was ignored rather than that the work simply beat the timer.
+        var returnCode = task.Result.ReturnCode;
+        Assert(
+            returnCode is not null && returnCode.IsValueCancel,
+            $"Expected a cancelled return code, got {returnCode?.Value.ToString() ?? "<null>"}.");
+
+        Report($"cancelled session returned {returnCode!.Value}");
     }
 
     private static void SessionStateIsCompleted(string workingDirectory)
@@ -158,11 +190,50 @@ public static class SmokeTests
         Report($"state={state} returnCode={session.ReturnCode?.Value}");
     }
 
+    private static void ErgonomicHelpersWork(string workingDirectory)
+    {
+        var session = FFmpeg.Execute("-version");
+
+        Assert(session.Succeeded(), "Succeeded() disagreed with the return code.");
+        Assert(!session.Cancelled(), "Cancelled() was true for a command that completed.");
+
+        // The point of the conversion: this is a switch, which the bound int could not express
+        // without magic numbers.
+        var previous = FFmpegKitConfig.GetLogLevel();
+        try
+        {
+            FFmpegKitConfig.SetLogLevel(Level.Warning);
+            var level = FFmpegKitConfig.GetLogLevel();
+
+            Assert(level == Level.Warning, $"Expected Level.Warning, got {level}.");
+
+            var described = level switch
+            {
+                Level.Warning => "warning",
+                Level.Info => "info",
+                _ => "other",
+            };
+
+            Assert(described == "warning", $"switch produced '{described}'.");
+        }
+        finally
+        {
+            FFmpegKitConfig.SetLogLevel(previous);
+        }
+
+        Report($"logLevel={FFmpegKitConfig.GetLogLevel()} ltsBuild={FFmpegKitConfig.IsLtsBuild}");
+    }
+
     private static void LogDelegateReceivesOutput(string workingDirectory)
     {
         var lines = 0;
 
-        FFmpegKitConfig.EnableLogCallback(_ => Interlocked.Increment(ref lines));
+        Level? observed = null;
+        FFmpegKitConfig.EnableLogCallback(log =>
+        {
+            observed ??= log.Severity();
+            Interlocked.Increment(ref lines);
+        });
         try
         {
             FFmpeg.Execute("-version");
@@ -184,7 +255,8 @@ public static class SmokeTests
         }
 
         Assert(Volatile.Read(ref lines) > 0, "The log delegate never fired.");
-        Report($"received {Volatile.Read(ref lines)} log lines");
+        Assert(observed is not null, "No log line yielded a severity.");
+        Report($"received {Volatile.Read(ref lines)} log lines, first severity {observed}");
     }
 
     private static string BuildEncodeCommand(string input, string output) =>

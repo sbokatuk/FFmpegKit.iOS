@@ -30,10 +30,10 @@ jobs:
             exit 1
           fi
 
-          # The tag drives which native FFmpegKit version is bound, so an older line is released
-          # simply by tagging it - v7.1.1 builds against FFmpegKit 7.1.1. Any prerelease suffix is
-          # dropped, and a fourth version component is treated as a binding-only revision:
-          # v8.1.2.1 still binds native 8.1.2.
+          # The tag drives which FFmpeg build is bound, so an older line is released simply by
+          # tagging it - v7.1.1.1 builds against FFmpeg 7.1.1. Any prerelease suffix is dropped,
+          # and the fourth component is this repository's binding revision, not part of the
+          # FFmpeg version: v8.1.2.6 still binds FFmpeg 8.1.2.
           native=$(printf '%s' "${version%%-*}" | cut -d. -f1-3)
           echo "native-version=${native}" >> "$GITHUB_OUTPUT"
 
@@ -59,7 +59,7 @@ jobs:
     needs: [version, build]
     runs-on: ubuntu-latest
     # Must match the Environment on the nuget.org trusted publishing policy for this workflow.
-    environment: production
+    environment: nuget.org
     permissions:
       # contents: write creates the GitHub release; id-token: write lets the job request the OIDC
       # token that nuget.org exchanges for a short-lived API key. Without the latter the token
@@ -140,7 +140,13 @@ jobs:
 
             echo "## Packages"
             echo
-            echo "Bound against FFmpegKit \`${native}\`, targeting \`net8.0-ios18.0\`, \`net9.0-ios18.0\` and \`net10.0-ios26.0\`."
+            # "FFmpeg", not "FFmpegKit": the first three components of the package version are
+            # the FFmpeg build inside it, and the fourth is this repository's binding revision.
+            echo "Bound against FFmpeg \`${native}\`, targeting \`net8.0-ios18.0\`, \`net9.0-ios18.0\` and \`net10.0-ios26.0\`."
+            echo
+            echo "> The first three components of \`${VERSION}\` are the FFmpeg version; the fourth is this"
+            echo "> repository's binding revision. The [Android bindings](https://github.com/sbokatuk/FFmpegKit.Android)"
+            echo "> number their packages differently, so the two version numbers are not comparable."
             echo
             echo "| Package | License | NuGet |"
             echo "| --- | --- | --- |"

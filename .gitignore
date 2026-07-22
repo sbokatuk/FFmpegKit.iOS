@@ -59,7 +59,11 @@ BenchmarkDotNet.Artifacts/
 # .NET Core
 project.lock.json
 project.fragment.lock.json
-artifacts/
+# Ignore the packages, but keep the directory itself: NuGet.config declares ./artifacts as a
+# package source, and restore fails with NU1301 if a local source does not exist. The pattern
+# must exclude the directory's *contents* rather than the directory - git cannot re-include a
+# file whose parent directory is excluded, which silently makes the negation below a no-op.
+artifacts/*
 !artifacts/.gitkeep
 
 # StyleCop

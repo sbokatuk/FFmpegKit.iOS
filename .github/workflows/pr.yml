@@ -22,14 +22,16 @@ jobs:
 
       - id: resolve
         run: |
-          # Base version lives in Directory.Build.props; the PR number and run number make each
-          # published prerelease unique, since nuget.org never allows a version to be reused.
-          base=$(sed -n 's:.*<FFmpegKitNativeVersion>\(.*\)</FFmpegKitNativeVersion>.*:\1:p' Directory.Build.props | head -1)
-          if [ -z "${base}" ]; then
-            echo "::error::could not read FFmpegKitNativeVersion from Directory.Build.props"
+          # Base version lives in Directory.Build.props, as <ffmpeg version>.<binding revision>;
+          # the PR number and run number make each published prerelease unique, since nuget.org
+          # never allows a version to be reused.
+          native=$(sed -n 's:.*<FFmpegKitNativeVersion>\(.*\)</FFmpegKitNativeVersion>.*:\1:p' Directory.Build.props | head -1)
+          revision=$(sed -n 's:.*<FFmpegKitBindingRevision>\(.*\)</FFmpegKitBindingRevision>.*:\1:p' Directory.Build.props | head -1)
+          if [ -z "${native}" ] || [ -z "${revision}" ]; then
+            echo "::error::could not read FFmpegKitNativeVersion/FFmpegKitBindingRevision from Directory.Build.props"
             exit 1
           fi
-          version="${base}-beta.${{ github.event.number }}.${{ github.run_number }}"
+          version="${native}.${revision}-beta.${{ github.event.number }}.${{ github.run_number }}"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "Building ${version}" >> "$GITHUB_STEP_SUMMARY"
 
@@ -48,7 +50,7 @@ jobs:
     # a confusing error. Those PRs still build and test; only the publish step is skipped.
     if: github.event.pull_request.head.repo.full_name == github.repository
     # Must match the Environment on the nuget.org trusted publishing policy for this workflow.
-    environment: production
+    environment: nuget.org
     permissions:
       contents: read
       # Lets the job request the OIDC token that nuget.org exchanges for a short-lived API key.
