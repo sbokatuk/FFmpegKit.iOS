@@ -29,6 +29,7 @@ public static class SmokeTests
         new("reports a completed session state", SessionStateIsCompleted),
         new("exposes enum-typed log level and helpers", ErgonomicHelpersWork),
         new("delivers log output to a delegate", LogDelegateReceivesOutput),
+        new("reports progress through statistics", StatisticsDelegateReportsProgress),
     ];
 
     private static void ReportsItsBuild(string workingDirectory)
@@ -257,6 +258,45 @@ public static class SmokeTests
         Assert(Volatile.Read(ref lines) > 0, "The log delegate never fired.");
         Assert(observed is not null, "No log line yielded a severity.");
         Report($"received {Volatile.Read(ref lines)} log lines, first severity {observed}");
+    }
+
+    private static void StatisticsDelegateReportsProgress(string workingDirectory)
+    {
+        var input = Path.Combine(workingDirectory, "input.raw");
+        var output = Path.Combine(workingDirectory, "statistics.mp4");
+        WriteRawFrames(input, frameCount: 200);
+        File.Delete(output);
+
+        // The sample drives its progress bar from this callback, so a binding that never
+        // delivered Statistics would leave the bar dead while the transcode ran - invisible to
+        // every other check here, because the command itself still succeeds.
+        var updates = 0;
+        double lastTime = -1;
+
+        FFmpegKitConfig.EnableStatisticsCallback(statistics =>
+        {
+            Interlocked.Increment(ref updates);
+            lastTime = statistics.Time;
+        });
+
+        try
+        {
+            var session = FFmpeg.ExecuteAsync(
+                $"-y -f rawvideo -pixel_format rgb24 -video_size {FrameWidth}x{FrameHeight} " +
+                $"-framerate 10 -i \"{input}\" -vf scale=320:240 -c:v mpeg4 \"{output}\"")
+                .GetAwaiter().GetResult();
+
+            AssertSuccess(session, "statistics encode");
+        }
+        finally
+        {
+            FFmpegKitConfig.EnableStatisticsCallback(null!);
+        }
+
+        Assert(Volatile.Read(ref updates) > 0, "The statistics delegate never fired.");
+        Assert(lastTime > 0, $"Statistics reported no elapsed media time (last was {lastTime}).");
+
+        Report($"received {Volatile.Read(ref updates)} statistics updates, last time {lastTime} ms");
     }
 
     private static string BuildEncodeCommand(string input, string output) =>
