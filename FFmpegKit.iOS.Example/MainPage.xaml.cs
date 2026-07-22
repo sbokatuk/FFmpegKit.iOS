@@ -72,11 +72,11 @@ public partial class MainPage : ContentPage
 		var (success, message) = await Task.Run(() =>
 		{
 			var session = FFmpegKit.Execute(command);
-			var returnCode = session.ReturnCode();
-			var ok = ReturnCode.IsSuccess(returnCode);
+			var returnCode = session.ReturnCode;
+			var ok = returnCode is not null && returnCode.IsValueSuccess;
 			var log = ok
-				? $"success, {session.Duration} ms, {session.State()}"
-				: $"failed (code {returnCode.Value}): {session.FailStackTrace}";
+				? $"success, {session.Duration} ms, {session.State}"
+				: $"failed (code {returnCode?.Value}): {session.FailStackTrace}";
 			return (ok, log);
 		});
 
