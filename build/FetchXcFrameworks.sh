@@ -2,7 +2,8 @@
 
 set -e
 
-# Downloads the native FFmpegKit xcframeworks the binding is built against, into libs/<Variant>/.
+# Downloads the native FFmpegKit xcframeworks the binding is built against, into
+# src/FFmpegKit.iOS/libs/<Variant>/.
 #
 # NOTE: unlike Android, there is no Maven-style feed for the iOS binaries. The original
 # arthenica/ffmpeg-kit repo is archived and every one of its releases now carries zero assets;
@@ -25,6 +26,8 @@ cd "$(dirname "$0")"
 
 ROOT="$(cd .. && pwd)"
 PROPS="$ROOT/Directory.Build.props"
+# The frameworks belong to the binding project, which lives elsewhere in the tree.
+LIBS="$ROOT/src/FFmpegKit.iOS/libs"
 RELEASE_BASE="https://github.com/sk3llo/ffmpeg_kit_flutter/releases/download"
 
 # Read the version from Directory.Build.props rather than repeating it here: the .csproj resolves
@@ -126,7 +129,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 for variant in $VARIANTS; do
     tag="$(release_tag_for "$variant")"
     base="$RELEASE_BASE/$FFMPEG_KIT_VERSION-$tag"
-    target="libs/$variant"
+    target="$LIBS/$variant"
 
     echo "==> fetching FFmpegKit $FFMPEG_KIT_VERSION $variant"
 

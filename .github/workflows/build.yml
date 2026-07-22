@@ -92,17 +92,17 @@ jobs:
         id: xcframeworks
         uses: actions/cache@v4
         with:
-          path: FFmpegKit.iOS/libs
+          path: src/FFmpegKit.iOS/libs
           # The native version is part of the key: without it a build for an older line would
           # restore the previous version's frameworks and bind the wrong thing.
-          key: ffmpegkit-xcframeworks-${{ steps.native.outputs.version }}-${{ hashFiles('FFmpegKit.iOS/FetchXcFrameworks.sh') }}
+          key: ffmpegkit-xcframeworks-${{ steps.native.outputs.version }}-${{ hashFiles('build/FetchXcFrameworks.sh') }}
 
       - name: Fetch FFmpegKit xcframeworks
         if: steps.xcframeworks.outputs.cache-hit != 'true'
-        run: ./FFmpegKit.iOS/FetchXcFrameworks.sh "${{ steps.native.outputs.version }}"
+        run: ./build/FetchXcFrameworks.sh "${{ steps.native.outputs.version }}"
 
       - name: Pack all variants
-        run: ./FFmpegKit.iOS/BuildNugets.sh "${{ inputs.version }}" "${{ steps.native.outputs.version }}"
+        run: ./build/BuildNugets.sh "${{ inputs.version }}" "${{ steps.native.outputs.version }}"
 
       - name: Validate packages
         run: dotnet test tests/FFmpegKit.iOS.PackageTests --logger 'trx;LogFileName=package-tests.trx'
@@ -166,7 +166,7 @@ jobs:
       # The sample deliberately does not target net10; the device tests cover that.
       - name: Build the sample against the packed package
         run: |
-          dotnet build FFmpegKit.iOS.Example/FFmpegKitExample.csproj \
+          dotnet build samples/FFmpegKit.iOS.Example/FFmpegKitExample.csproj \
             --configuration Debug \
             -p:RuntimeIdentifier=iossimulator-arm64 \
             -p:FFmpegKitVersion="${{ inputs.version }}"

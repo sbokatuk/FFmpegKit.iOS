@@ -120,19 +120,18 @@ public class PackageLayoutTests
 
         foreach (var framework in Packages.ExpectedXcFrameworks)
         {
-            var slices = payload.Entries
-                .Where(e => e.FullName.StartsWith($"{framework}.xcframework/", StringComparison.Ordinal))
-                .Select(e => e.FullName.Split('/'))
-                .Where(parts => parts.Length > 2)
-                .Select(parts => parts[1])
-                .Where(slice => !slice.EndsWith(".plist", StringComparison.Ordinal))
-                .Distinct()
-                .OrderBy(slice => slice, StringComparer.Ordinal)
-                .ToList();
+            var slices = SlicesOf(payload, framework);
 
             // Device and simulator, and nothing else. A macos slice creeping back in would inflate
             // the package by ~40% - and FullGpl already sits close to the 250 MB nuget.org limit.
-            Assert.Equal(Packages.ExpectedSlices.OrderBy(s => s, StringComparer.Ordinal), slices);
+            // Checked by shape rather than by name: upstream renamed the device slice from
+            // ios-arm64_arm64e to ios-arm64 when it rebuilt 8.1.2.
+            Assert.All(slices, slice => Assert.True(
+                Packages.IsIosSlice(slice),
+                $"{framework}.xcframework carries a non-iOS slice '{slice}'."));
+
+            Assert.Single(slices.Where(Packages.IsSimulatorSlice));
+            Assert.Single(slices.Where(slice => !Packages.IsSimulatorSlice(slice)));
         }
     }
 
@@ -156,7 +155,8 @@ public class PackageLayoutTests
             // whole xcframework - a failure that would only surface in a consuming app's build.
             Assert.DoesNotContain("macos", text, StringComparison.OrdinalIgnoreCase);
 
-            foreach (var slice in Packages.ExpectedSlices)
+            // Every slice present on disk must be advertised, whatever upstream named it.
+            foreach (var slice in SlicesOf(payload, framework))
             {
                 Assert.Contains(slice, text, StringComparison.Ordinal);
             }
@@ -176,9 +176,11 @@ public class PackageLayoutTests
         // first place, so its presence is exactly what the package's licence expression claims.
         // Packing a GPL build under an LGPL licence expression is the one packaging mistake here
         // with legal consequences for consumers, and it is otherwise invisible.
+        var deviceSlice = SlicesOf(payload, "libavcodec").Single(s => !Packages.IsSimulatorSlice(s));
+
         using var libavcodec = Packages.ReadEntry(
             payload,
-            $"libavcodec.xcframework/ios-arm64_arm64e/libavcodec.framework/libavcodec");
+            $"libavcodec.xcframework/{deviceSlice}/libavcodec.framework/libavcodec");
 
         var containsX264 = ContainsAscii(libavcodec, "libx264");
 
@@ -281,6 +283,18 @@ public class PackageLayoutTests
 
         Assert.Single(versions);
     }
+
+    /// <summary>The slice directory names an xcframework actually carries inside the payload.</summary>
+    private static List<string> SlicesOf(ZipArchive payload, string framework) =>
+        payload.Entries
+            .Where(e => e.FullName.StartsWith($"{framework}.xcframework/", StringComparison.Ordinal))
+            .Select(e => e.FullName.Split('/'))
+            .Where(parts => parts.Length > 2)
+            .Select(parts => parts[1])
+            .Where(slice => !slice.EndsWith(".plist", StringComparison.Ordinal))
+            .Distinct()
+            .OrderBy(slice => slice, StringComparer.Ordinal)
+            .ToList();
 
     /// <summary>
     /// Scans a native binary for an ASCII marker, in chunks so a ~40 MB library does not have to
