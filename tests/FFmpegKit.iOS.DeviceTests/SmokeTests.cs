@@ -27,6 +27,7 @@ public static class SmokeTests
         new("awaits an async ffprobe", AsyncProbeReturnsMediaInformation),
         new("cancels a running command", CancellationStopsACommand),
         new("reports a completed session state", SessionStateIsCompleted),
+        new("exposes enum-typed log level and helpers", ErgonomicHelpersWork),
         new("delivers log output to a delegate", LogDelegateReceivesOutput),
     ];
 
@@ -189,11 +190,50 @@ public static class SmokeTests
         Report($"state={state} returnCode={session.ReturnCode?.Value}");
     }
 
+    private static void ErgonomicHelpersWork(string workingDirectory)
+    {
+        var session = FFmpeg.Execute("-version");
+
+        Assert(session.Succeeded(), "Succeeded() disagreed with the return code.");
+        Assert(!session.Cancelled(), "Cancelled() was true for a command that completed.");
+
+        // The point of the conversion: this is a switch, which the bound int could not express
+        // without magic numbers.
+        var previous = FFmpegKitConfig.GetLogLevel();
+        try
+        {
+            FFmpegKitConfig.SetLogLevel(Level.Warning);
+            var level = FFmpegKitConfig.GetLogLevel();
+
+            Assert(level == Level.Warning, $"Expected Level.Warning, got {level}.");
+
+            var described = level switch
+            {
+                Level.Warning => "warning",
+                Level.Info => "info",
+                _ => "other",
+            };
+
+            Assert(described == "warning", $"switch produced '{described}'.");
+        }
+        finally
+        {
+            FFmpegKitConfig.SetLogLevel(previous);
+        }
+
+        Report($"logLevel={FFmpegKitConfig.GetLogLevel()} ltsBuild={FFmpegKitConfig.IsLtsBuild}");
+    }
+
     private static void LogDelegateReceivesOutput(string workingDirectory)
     {
         var lines = 0;
 
-        FFmpegKitConfig.EnableLogCallback(_ => Interlocked.Increment(ref lines));
+        Level? observed = null;
+        FFmpegKitConfig.EnableLogCallback(log =>
+        {
+            observed ??= log.Severity();
+            Interlocked.Increment(ref lines);
+        });
         try
         {
             FFmpeg.Execute("-version");
@@ -215,7 +255,8 @@ public static class SmokeTests
         }
 
         Assert(Volatile.Read(ref lines) > 0, "The log delegate never fired.");
-        Report($"received {Volatile.Read(ref lines)} log lines");
+        Assert(observed is not null, "No log line yielded a severity.");
+        Report($"received {Volatile.Read(ref lines)} log lines, first severity {observed}");
     }
 
     private static string BuildEncodeCommand(string input, string output) =>

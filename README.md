@@ -140,7 +140,19 @@ using Ffmpegkit.Ios;
 Execute your FFmpeg command:
 
 ```c#
-FFmpegKit.Execute("-i input.mov -c:v libx264 output.mp4");
+var session = await FFmpegKit.ExecuteAsync("-i input.mov -c:v libx264 output.mp4");
+
+if (session.Succeeded())
+    Console.WriteLine("done");
+```
+
+`ExecuteAsync` wraps FFmpegKit's own asynchronous path, so nothing blocks the calling thread. Pass a `CancellationToken` to stop a running command — the session then completes with a cancelled return code rather than throwing. A synchronous `FFmpegKit.Execute` is also bound, but it blocks for the whole transcode, which on the UI thread means a frozen app.
+
+Probing works the same way:
+
+```c#
+var probe = await FFprobeKit.GetMediaInformationAsync(path);
+Console.WriteLine(probe.MediaInformation?.Format);
 ```
 
 More examples and usage can be found in the [original FFmpegKit wiki](https://github.com/arthenica/ffmpeg-kit/wiki/iOS). That repository is archived, but the Objective-C API it documents is the one these bindings expose, so it remains the reference.
