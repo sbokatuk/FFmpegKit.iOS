@@ -40,6 +40,7 @@ env:
 jobs:
   pack:
     name: build and pack
+    timeout-minutes: 60
     # iOS builds require a macOS runner with Xcode - there is no cross-platform path for the
     # native toolchain, unlike the Android bindings which build on ubuntu.
     runs-on: macos-15
@@ -127,6 +128,7 @@ jobs:
 
   sample:
     name: build sample app
+    timeout-minutes: 20
     needs: pack
     runs-on: macos-15
     steps:
@@ -154,16 +156,24 @@ jobs:
       # once already: regenerating the binding turned session.ReturnCode() and session.State()
       # into properties, and nothing built the sample to notice.
       #
-      # Build only - the device tests already prove the binding runs. Both target frameworks the
-      # .NET 9 band covers are built; the sample deliberately does not target net10.
+      # Debug, and pinned to the simulator, because this is a compile check and nothing here is
+      # shipped. Release on a MAUI app pulls in the trimmer and LLVM (MtouchUseLlvm defaults to
+      # true) and then statically links ~150 MB of FFmpeg per target framework: measured locally
+      # at 7m43s against 19s for this command, and a runner is far slower still - the first
+      # attempt at this job was killed after 48 minutes.
+      #
+      # Both target frameworks the .NET 9 band covers are built, since at this cost it is free.
+      # The sample deliberately does not target net10; the device tests cover that.
       - name: Build the sample against the packed package
         run: |
           dotnet build FFmpegKit.iOS.Example/FFmpegKitExample.csproj \
-            --configuration Release \
+            --configuration Debug \
+            -p:RuntimeIdentifier=iossimulator-arm64 \
             -p:FFmpegKitVersion="${{ inputs.version }}"
 
   e2e:
     name: simulator smoke test
+    timeout-minutes: 45
     needs: pack
     runs-on: macos-15
     steps:
