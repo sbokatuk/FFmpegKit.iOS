@@ -22,32 +22,52 @@ runs:
         #     The packaging job never notices at all, because packing a binding project does not
         #     shell out to xcrun.
         #
-        #  2. An Xcode that builds for iOS is not necessarily usable. /Applications/Xcode_26.0.app
-        #     on the macos-15-arm64 image is Xcode 26.0.1 with the iOS 26 SDK, yet the build dies
-        #     in it: the iOS SDK resolves its host tools with
-        #     `xcodebuild -sdk <...>/MacOSX.sdk -find clang`, and there that exits 64 with
-        #     "unable to find utility clang". A plain `xcrun --find` does NOT catch it - with no
-        #     -sdk argument the lookup goes through the iPhoneOS SDK and succeeds.
+        #  2. The iOS SDK resolves its host tools through the *unversioned* macOS SDK path,
         #
-        # So rather than guessing why a given Xcode is unusable, each candidate is probed with
-        # the exact lookup the build performs, and an unusable one is skipped in favour of the
-        # next. Lowest version first: it is the closest match to the iOS 26.0 SDK the workload
-        # targets, and newer Xcodes are likelier to warn about an SDK they have not seen.
+        #         xcodebuild -sdk <dev>/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -find ...
+        #
+        #     and on the runner image that symlink is missing: Xcode_26.0.app ships
+        #     MacOSX26.0.sdk and MacOSX26.sdk but no plain MacOSX.sdk, so every lookup fails with
+        #     'SDK "..." cannot be located' and the build dies on install_name_tool. It is
+        #     recreated below when absent - the runner is ephemeral, so adding the symlink the
+        #     image omitted is cheaper than giving up the Xcode that matches the workload.
+        #
+        #     Note `xcrun -sdk macosx --find` does NOT detect this: it resolves the SDK by name
+        #     and happily finds the versioned one. Only the literal path the build uses tells the
+        #     truth, so that is what is probed.
+        #
+        # Lowest version first: it is the closest match to the iOS 26.0 SDK the workload targets,
+        # and newer Xcodes are likelier to warn about an SDK they have not seen.
         selected=""
 
         for app in $(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V); do
           developer="${app}/Contents/Developer"
           [ -d "${developer}" ] || continue
+          name="$(basename "${app}")"
 
           if [ -z "$(ls -d "${developer}/Platforms/iPhoneOS.platform/Developer/SDKs/"iPhoneOS26*.sdk 2>/dev/null)" ]; then
-            echo "skipping $(basename "${app}"): no iOS 26 SDK"
+            echo "skipping ${name}: no iOS 26 SDK"
             continue
           fi
 
-          # Probed with DEVELOPER_DIR rather than by switching the whole machine over, so a
-          # candidate can be rejected without leaving a broken global selection behind.
-          if ! DEVELOPER_DIR="${developer}" xcrun -sdk macosx --find clang > /dev/null 2>&1; then
-            echo "skipping $(basename "${app}"): cannot resolve clang through the macOS SDK"
+          sdk_root="${developer}/Platforms/MacOSX.platform/Developer/SDKs"
+          macos_sdk="${sdk_root}/MacOSX.sdk"
+
+          if [ ! -d "${macos_sdk}" ]; then
+            versioned="$(ls -d "${sdk_root}/"MacOSX*.sdk 2>/dev/null | sort -V | tail -1)"
+            if [ -z "${versioned}" ]; then
+              echo "skipping ${name}: no macOS SDK at all"
+              continue
+            fi
+            echo "${name}: MacOSX.sdk is missing, linking it to $(basename "${versioned}")"
+            sudo ln -sfn "${versioned}" "${macos_sdk}"
+          fi
+
+          # The exact lookup the build performs, through the same literal path. Probed with
+          # DEVELOPER_DIR rather than by switching the whole machine over, so a candidate can be
+          # rejected without leaving a broken global selection behind.
+          if ! DEVELOPER_DIR="${developer}" xcodebuild -sdk "${macos_sdk}" -find install_name_tool > /dev/null 2>&1; then
+            echo "skipping ${name}: cannot resolve host tools through ${macos_sdk}"
             continue
           fi
 
@@ -59,7 +79,8 @@ runs:
           echo "::error::no installed Xcode can both target iOS 26 and resolve its host tools"
           for app in $(ls -d /Applications/Xcode*.app 2>/dev/null); do
             echo "--- ${app}"
-            ls "${app}/Contents/Developer/Platforms" 2>/dev/null || echo "  (no Platforms directory)"
+            echo "  iOS SDKs:   $(ls "${app}/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs" 2>/dev/null | tr '\n' ' ')"
+            echo "  macOS SDKs: $(ls "${app}/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs" 2>/dev/null | tr '\n' ' ')"
           done
           exit 1
         fi
