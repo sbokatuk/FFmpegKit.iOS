@@ -120,6 +120,33 @@ for manifest in sorted(root.glob("*.xcframework/Info.plist")):
 PYTHON
 }
 
+# Record the FFmpegKit wrapper version alongside the frameworks, for the package description to
+# quote. The version these releases are tagged with is the FFmpeg one; the Objective-C wrapper
+# around it carries its own - FFmpeg 8.1.2 currently ships wrapped by FFmpegKit 6.0 - and the two
+# move independently. Reading it here means nothing has to restate it from memory.
+record_api_version() {
+    python3 - "$1" <<'PYTHON'
+import plistlib
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+manifest = next(root.glob("ffmpegkit.xcframework/ios-*/ffmpegkit.framework/Info.plist"), None)
+
+if manifest is None:
+    raise SystemExit("error: no ffmpegkit.framework/Info.plist in the fetched frameworks")
+
+with manifest.open("rb") as handle:
+    version = plistlib.load(handle).get("CFBundleShortVersionString")
+
+if not version:
+    raise SystemExit("error: ffmpegkit.framework declares no CFBundleShortVersionString")
+
+(root / "ffmpegkit-api-version.txt").write_text(f"{version}\n")
+print(f"    FFmpegKit API {version}")
+PYTHON
+}
+
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
@@ -171,6 +198,7 @@ for variant in $VARIANTS; do
     rm -rf "$target/__MACOSX"
 
     strip_non_ios_slices "$target"
+    record_api_version "$target"
 done
 
 echo "==> done"

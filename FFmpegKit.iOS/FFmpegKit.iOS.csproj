@@ -69,6 +69,17 @@
   -->
   <PropertyGroup>
     <FFmpegKitLibsDirectory>libs/$(FFmpegKitBuildType)</FFmpegKitLibsDirectory>
+
+    <!--
+      The FFmpegKit wrapper version, recorded by FetchXcFrameworks.sh from the frameworks it
+      downloaded. It is not the same number as FFmpegKitNativeVersion: upstream tags its releases
+      by the FFmpeg build they contain, and the Objective-C wrapper around it is versioned
+      separately. Read from the download rather than written here, so the package description
+      cannot claim a wrapper version the payload does not have.
+    -->
+    <FFmpegKitApiVersionFile>$(MSBuildProjectDirectory)/$(FFmpegKitLibsDirectory)/ffmpegkit-api-version.txt</FFmpegKitApiVersionFile>
+    <FFmpegKitApiVersion Condition="Exists('$(FFmpegKitApiVersionFile)')">$([System.IO.File]::ReadAllText('$(FFmpegKitApiVersionFile)').Trim())</FFmpegKitApiVersion>
+    <FFmpegKitApiClause Condition=" '$(FFmpegKitApiVersion)' != '' "> wrapped by the FFmpegKit $(FFmpegKitApiVersion) API</FFmpegKitApiClause>
   </PropertyGroup>
 
   <Target Name="ValidateFFmpegKitLibs" BeforeTargets="Build;Pack"
@@ -140,7 +151,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>FFmpegKit.Net.$(FFmpegKitBuildType).iOS</PackageId>
     <Title>.NET for iOS bindings for the native FFmpegKit $(FFmpegKitBuildType) SDK.</Title>
-    <Description>.NET for iOS / .NET MAUI bindings for the native FFmpegKit $(FFmpegKitBuildType) SDK. Built against FFmpeg $(FFmpegKitNativeVersion) with the FFmpegKit 6.0 API. The bundled native FFmpeg binaries are licensed under $(FFmpegKitNativeLicense); the binding code is MIT. See the licence files in this package before shipping.</Description>
+    <Description>.NET for iOS / .NET MAUI bindings for the native FFmpegKit $(FFmpegKitBuildType) SDK. Built against FFmpeg $(FFmpegKitNativeVersion)$(FFmpegKitApiClause). The bundled native FFmpeg binaries are licensed under $(FFmpegKitNativeLicense); the binding code is MIT. See the licence files in this package before shipping.</Description>
     <PackageLicenseExpression>MIT AND $(FFmpegKitNativeLicense)</PackageLicenseExpression>
     <PackageTags>ffmpeg;ffmpegkit;$(FFmpegKitVariantName);video;audio;transcode;SDK;MAUI;iOS;dotnet-ios;Binding</PackageTags>
     <PackageIcon>icon.png</PackageIcon>
