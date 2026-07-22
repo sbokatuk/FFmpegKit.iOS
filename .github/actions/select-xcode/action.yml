@@ -1,43 +1,71 @@
 name: Select Xcode
 description: >
-  Selects an installed Xcode carrying an iOS 26 SDK, and verifies the selection actually works.
+  Selects an installed Xcode that can build net10.0-ios26.0, and verifies it before anything
+  depends on it.
 
 runs:
   using: composite
   steps:
     - shell: bash
       run: |
-        set -euo pipefail
+        set -uo pipefail
 
-        # The packages advertise net10.0-ios26.0, which can only be built by an Xcode carrying an
-        # iOS 26 SDK. The runner image default is much older (16.4 at the time of writing), so one
-        # has to be selected explicitly.
+        # The packages advertise net10.0-ios26.0, which needs an Xcode carrying an iOS 26 SDK.
+        # The runner image default is much older (16.4 at the time of writing), so one has to be
+        # selected explicitly.
         #
-        # Resolved rather than hardcoded, because `xcode-select -s` does NOT validate its
-        # argument: pointing it at a path that does not exist succeeds silently, and the failure
-        # only surfaces much later as "SDK ... cannot be located" from xcrun, in whichever step
-        # first needs the native toolchain. A hardcoded /Applications/Xcode_26.0.app did exactly
-        # that - the image ships 26.0.1, not 26.0 - and the packaging job did not even notice,
-        # because packing a binding project never shells out to xcrun.
+        # Two things make this fiddly, and both have already broken CI:
         #
-        # The lowest installed 26.x is preferred: it is the closest match to the iOS 26.0 SDK the
-        # workload targets, and newer Xcodes are likelier to warn about an SDK it has not seen.
-        app="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | head -1 || true)"
+        #  1. `xcode-select -s` does not validate its argument. Pointing it at a path that does
+        #     not exist succeeds silently, and the failure only appears later as
+        #     "SDK ... cannot be located" from whichever step first needs the native toolchain.
+        #     The packaging job never notices at all, because packing a binding project does not
+        #     shell out to xcrun.
+        #
+        #  2. An Xcode that builds for iOS is not necessarily usable. /Applications/Xcode_26.0.app
+        #     on the macos-15-arm64 image is Xcode 26.0.1 with the iOS 26 SDK, yet the build dies
+        #     in it: the iOS SDK resolves its host tools with
+        #     `xcodebuild -sdk <...>/MacOSX.sdk -find clang`, and there that exits 64 with
+        #     "unable to find utility clang". A plain `xcrun --find` does NOT catch it - with no
+        #     -sdk argument the lookup goes through the iPhoneOS SDK and succeeds.
+        #
+        # So rather than guessing why a given Xcode is unusable, each candidate is probed with
+        # the exact lookup the build performs, and an unusable one is skipped in favour of the
+        # next. Lowest version first: it is the closest match to the iOS 26.0 SDK the workload
+        # targets, and newer Xcodes are likelier to warn about an SDK they have not seen.
+        selected=""
 
-        if [ -z "${app}" ]; then
-          echo "::error::no Xcode 26.x is installed, so net10.0-ios26.0 cannot be built"
-          echo "Installed Xcodes:"
-          ls -d /Applications/Xcode*.app || true
+        for app in $(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V); do
+          developer="${app}/Contents/Developer"
+          [ -d "${developer}" ] || continue
+
+          if [ -z "$(ls -d "${developer}/Platforms/iPhoneOS.platform/Developer/SDKs/"iPhoneOS26*.sdk 2>/dev/null)" ]; then
+            echo "skipping $(basename "${app}"): no iOS 26 SDK"
+            continue
+          fi
+
+          # Probed with DEVELOPER_DIR rather than by switching the whole machine over, so a
+          # candidate can be rejected without leaving a broken global selection behind.
+          if ! DEVELOPER_DIR="${developer}" xcrun -sdk macosx --find clang > /dev/null 2>&1; then
+            echo "skipping $(basename "${app}"): cannot resolve clang through the macOS SDK"
+            continue
+          fi
+
+          selected="${app}"
+          break
+        done
+
+        if [ -z "${selected}" ]; then
+          echo "::error::no installed Xcode can both target iOS 26 and resolve its host tools"
+          for app in $(ls -d /Applications/Xcode*.app 2>/dev/null); do
+            echo "--- ${app}"
+            ls "${app}/Contents/Developer/Platforms" 2>/dev/null || echo "  (no Platforms directory)"
+          done
           exit 1
         fi
 
-        echo "selecting ${app}"
-        sudo xcode-select -s "${app}"
-
-        # Prove the selection is usable rather than merely recorded. install_name_tool is the
-        # tool whose absence produced the original confusing failure, and it comes from the
-        # macOS SDK inside the selected Xcode.
+        echo "selecting ${selected}"
+        sudo xcode-select -s "${selected}"
         xcodebuild -version
-        xcrun --find install_name_tool > /dev/null
 
-        echo "DEVELOPER_DIR=${app}/Contents/Developer" >> "$GITHUB_ENV"
+        echo "DEVELOPER_DIR=${selected}/Contents/Developer" >> "$GITHUB_ENV"
