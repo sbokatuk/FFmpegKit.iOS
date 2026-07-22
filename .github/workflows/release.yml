@@ -140,7 +140,11 @@ jobs:
 
             echo "## Packages"
             echo
-            echo "Bound against FFmpegKit \`${native}\`, targeting \`net8.0-ios18.0\`, \`net9.0-ios18.0\` and \`net10.0-ios26.0\`."
+            # "FFmpeg", not "FFmpegKit": upstream tags these releases by the FFmpeg build they
+            # contain, while the FFmpegKit wrapper inside stays at 6.0. The Android bindings
+            # number by the wrapper instead, so saying FFmpegKit here would imply the two
+            # repositories' numbers are comparable when they are not.
+            echo "Bound against FFmpeg \`${native}\` with the FFmpegKit 6.0 API, targeting \`net8.0-ios18.0\`, \`net9.0-ios18.0\` and \`net10.0-ios26.0\`."
             echo
             echo "| Package | License | NuGet |"
             echo "| --- | --- | --- |"

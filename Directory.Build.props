@@ -1,7 +1,15 @@
 <Project>
 
   <PropertyGroup>
-    <!-- Version of the native FFmpegKit xcframeworks being bound. Also the default package version. -->
+    <!--
+      Version of the native binaries being bound, and the default package version.
+
+      This is the FFmpeg version, not the FFmpegKit one: upstream tags its releases by the FFmpeg
+      build they contain (8.1.2), while the FFmpegKit Objective-C wrapper inside them is 6.0.
+      Note the Android bindings number the other way round - their 8.1.7 is the FFmpegKit version,
+      wrapping the same FFmpeg 8.1.2 - so the two repositories' version numbers are not comparable.
+      See the README.
+    -->
     <FFmpegKitNativeVersion>8.1.2</FFmpegKitNativeVersion>
     <VersionPrefix>$(FFmpegKitNativeVersion)</VersionPrefix>
 
