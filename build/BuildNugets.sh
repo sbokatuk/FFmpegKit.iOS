@@ -2,7 +2,7 @@
 
 set -e
 
-# Builds and packs every FFmpegKit variant. Run FetchXcFrameworks.sh first.
+# Builds and packs every FFmpegKit variant. Run ./FetchXcFrameworks.sh first.
 #
 # Usage:
 #   ./BuildNugets.sh                       # version from Directory.Build.props
@@ -24,7 +24,7 @@ cd "$(dirname "$0")"
 VERSION="$1"
 NATIVE_VERSION="$2"
 ROOT="$(cd .. && pwd)"
-PROJECT="$ROOT/FFmpegKit.iOS/FFmpegKit.iOS.csproj"
+PROJECT="$ROOT/src/FFmpegKit.iOS/FFmpegKit.iOS.csproj"
 OUTPUT="$ROOT/artifacts"
 
 PASS1_BAND="net9"

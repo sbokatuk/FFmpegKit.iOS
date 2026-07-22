@@ -31,14 +31,22 @@ public static class Packages
     ];
 
     /// <summary>
-    /// Slices the packaged xcframeworks must contain. Upstream also ships a macos slice, which
-    /// FetchXcFrameworks.sh strips: it cannot be reached from a net*-ios binding but would be
-    /// embedded once per target framework, costing ~40% of the package for nothing.
+    /// Identifies the simulator slice of an xcframework from its directory name.
     /// </summary>
-    public static readonly string[] ExpectedSlices =
-    [
-        "ios-arm64_arm64e", "ios-arm64_x86_64-simulator",
-    ];
+    /// <remarks>
+    /// Slice names are not asserted literally, because upstream changes them: the device slice
+    /// was <c>ios-arm64_arm64e</c> until 8.1.2 was rebuilt as plain <c>ios-arm64</c>. What has to
+    /// hold is structural - one device slice, one simulator slice, both iOS, no macOS - so that
+    /// is what the tests check. The macOS slice upstream also ships is stripped by
+    /// FetchXcFrameworks.sh: it cannot be reached from a net*-ios binding but would be embedded
+    /// once per target framework, costing ~40% of the package for nothing.
+    /// </remarks>
+    public static bool IsSimulatorSlice(string slice) =>
+        slice.Contains("simulator", StringComparison.Ordinal);
+
+    /// <summary>Whether a slice directory name denotes an iOS slice at all.</summary>
+    public static bool IsIosSlice(string slice) =>
+        slice.StartsWith("ios-", StringComparison.Ordinal);
 
     public static string ArtifactsDirectory { get; } = ResolveArtifactsDirectory();
 
@@ -85,7 +93,7 @@ public static class Packages
         Assert.True(
             matches.Length > 0,
             $"No {id}*{extension} found in '{ArtifactsDirectory}'. " +
-            "Run FFmpegKit.iOS/BuildNugets.sh (or the CI pack step) first.");
+            "Run build/BuildNugets.sh (or the CI pack step) first.");
 
         // A rebuilt working copy can leave several versions behind; test the newest.
         return matches.OrderByDescending(File.GetLastWriteTimeUtc).First();

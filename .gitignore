@@ -355,7 +355,7 @@ MigrationBackup/
 .ionide/
 
 # Downloaded native FFmpegKit xcframeworks (too large to commit; see README for how to fetch)
-FFmpegKit.iOS/libs/
+src/FFmpegKit.iOS/libs/
 
 # Public headers extracted from the vendored xcframework, staged for `sharpie bind` (see README)
 /Headers/

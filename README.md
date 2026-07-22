@@ -6,11 +6,11 @@ Built against the prebuilt Apple binaries from **[sk3llo/ffmpeg_kit_flutter](htt
 
 ## About
 
-This repository contains .NET bindings on top of the FFmpegKit `.xcframework` build for iOS. One project, `FFmpegKit.iOS`, produces all eight package variants — the variant is selected with the `FFmpegKitBuildType` MSBuild property.
+This repository contains .NET bindings on top of the FFmpegKit `.xcframework` build for iOS. One project, `src/FFmpegKit.iOS`, produces all eight package variants — the variant is selected with the `FFmpegKitBuildType` MSBuild property.
 
 Packages target `net8.0-ios18.0`, `net9.0-ios18.0` and `net10.0-ios26.0`.
 
-Each .NET SDK's iOS workload supports only two target frameworks — the .NET 9 band ships `net8` and `net9`, the .NET 10 band ships `net9` and `net10` — so no single `dotnet pack` can produce all three. [`BuildNugets.sh`](FFmpegKit.iOS/BuildNugets.sh) packs once per band and [`build/merge-packages.py`](build/merge-packages.py) merges the `lib/` trees and nuspec dependency groups into one package per variant.
+Each .NET SDK's iOS workload supports only two target frameworks — the .NET 9 band ships `net8` and `net9`, the .NET 10 band ships `net9` and `net10` — so no single `dotnet pack` can produce all three. [`BuildNugets.sh`](build/BuildNugets.sh) packs once per band and [`build/merge-packages.py`](build/merge-packages.py) merges the `lib/` trees and nuspec dependency groups into one package per variant.
 
 ### Where the native binaries come from
 
@@ -26,18 +26,20 @@ FFmpegKit has several relevant repositories, and only one of them still ships us
 
 Note that this is *not* the same source as the Android bindings use: [`FFmpegKit.Android`](https://github.com/sbokatuk/FFmpegKit.Android) takes its `.aar` files from `ffmpegkit-maintained/ffmpeg` via Maven Central, and that fork does not build for Apple platforms.
 
-Releases there are tagged `<version>-<variant>` and carry each xcframework as a separate zip plus a `checksums.json`. [`FetchXcFrameworks.sh`](FFmpegKit.iOS/FetchXcFrameworks.sh) downloads all eight and verifies every one against that manifest — these are tens of megabytes of native code that gets linked into your app, so a truncated or substituted archive fails the build rather than shipping.
+Releases there are tagged `<version>-<variant>` and carry each xcframework as a separate zip plus a `checksums.json`. [`FetchXcFrameworks.sh`](build/FetchXcFrameworks.sh) downloads all eight and verifies every one against that manifest — these are tens of megabytes of native code that gets linked into your app, so a truncated or substituted archive fails the build rather than shipping.
 
 The version is set by `FFmpegKitNativeVersion` in [`Directory.Build.props`](Directory.Build.props), which `FetchXcFrameworks.sh` reads, so the download and the frameworks the project expects cannot drift apart.
 
 The fork currently publishes four FFmpeg lines, each with all eight variants:
 
-| FFmpeg | Architectures | Simulator |
-| --- | --- | --- |
-| `7.1.1` | `arm64`, `arm64e` | `arm64`, `x86_64` |
-| `8.0.0` | `arm64`, `arm64e` | `arm64`, `x86_64` |
-| `8.1.1` | `arm64`, `arm64e` | `arm64`, `x86_64` |
-| `8.1.2` | `arm64`, `arm64e` | `arm64`, `x86_64` |
+| FFmpeg |
+| --- |
+| `7.1.1` |
+| `8.0.0` |
+| `8.1.1` |
+| `8.1.2` |
+
+Each carries a device slice and a simulator slice. The exact architectures are upstream's to decide and have changed within a version: `8.1.2` shipped a device slice of `arm64 + arm64e` and was later rebuilt as `arm64` alone. The package tests therefore assert the *shape* — one device slice, one simulator slice, both iOS, no macOS — rather than specific names.
 
 Upstream also ships a macOS slice in each xcframework. It is stripped on download: it cannot be reached from a `net*-ios` binding, but it would still be embedded in the package once per target framework. Keeping it would push the `FullGpl` package past nuget.org's 250 MB limit. If you need macOS or Mac Catalyst, note that **no Mac Catalyst slice is published at all**, so that would need a different source.
 
@@ -52,7 +54,7 @@ Package versions are **`<ffmpeg version>.<binding revision>`**:
     └────── FFmpeg version — the native build inside the package
 ```
 
-The first three components name the FFmpeg build the package contains, which is also the version [`FetchXcFrameworks.sh`](FFmpegKit.iOS/FetchXcFrameworks.sh) downloads and what upstream tags its releases with. The fourth belongs to this repository and increments whenever the bindings or packaging change while the native binaries stay put — `8.1.2.1` and `8.1.2.2` are the same FFmpeg with different bindings.
+The first three components name the FFmpeg build the package contains, which is also the version [`FetchXcFrameworks.sh`](build/FetchXcFrameworks.sh) downloads and what upstream tags its releases with. The fourth belongs to this repository and increments whenever the bindings or packaging change while the native binaries stay put — `8.1.2.1` and `8.1.2.2` are the same FFmpeg with different bindings.
 
 A floating range such as `8.1.2.*` therefore always resolves to the newest bindings for that exact FFmpeg build and never crosses onto another one. Pin an exact version instead if you would rather approve every binding update yourself.
 
@@ -65,8 +67,8 @@ The tag selects the FFmpeg line: the first three components of **`v7.1.1.1`** ar
 Locally, pass the native version as the second argument:
 
 ```sh
-./FFmpegKit.iOS/FetchXcFrameworks.sh 7.1.1     # fetch that line's xcframeworks
-./FFmpegKit.iOS/BuildNugets.sh 7.1.1 7.1.1     # package version, native version
+./build/FetchXcFrameworks.sh 7.1.1     # fetch that line's xcframeworks
+./build/BuildNugets.sh 7.1.1 7.1.1     # package version, native version
 ```
 
 ## License
@@ -176,22 +178,22 @@ Python 3 is also needed, for the xcframework slice stripping and the package mer
 ### All variants
 
 ```sh
-./FFmpegKit.iOS/FetchXcFrameworks.sh          # downloads the xcframeworks (~1 GB for all eight)
-./FFmpegKit.iOS/BuildNugets.sh                # packs all 8 variants into ./artifacts
-./FFmpegKit.iOS/BuildNugets.sh 8.1.2-rc.1     # ...or with an explicit package version
+./build/FetchXcFrameworks.sh          # downloads the xcframeworks (~1 GB for all eight)
+./build/BuildNugets.sh                # packs all 8 variants into ./artifacts
+./build/BuildNugets.sh 8.1.2-rc.1     # ...or with an explicit package version
 ```
 
 `FetchXcFrameworks.sh` reads the FFmpegKit version from `FFmpegKitNativeVersion` in `Directory.Build.props`, the same property the `.csproj` uses to locate the frameworks, so the two cannot drift apart. Pass a version to override it, and a variant to fetch just one:
 
 ```sh
-./FFmpegKit.iOS/FetchXcFrameworks.sh 8.1.2 Video
+./build/FetchXcFrameworks.sh 8.1.2 Video
 ```
 
 ### A single variant
 
 ```sh
 # net8 + net9 assets (.NET 9 SDK, per global.json)
-dotnet pack FFmpegKit.iOS/FFmpegKit.iOS.csproj \
+dotnet pack src/FFmpegKit.iOS/FFmpegKit.iOS.csproj \
     -c Release -p:FFmpegKitBuildType=Video -p:FFmpegKitSdkBand=net9 -o artifacts
 ```
 
@@ -204,7 +206,7 @@ Only needed when bumping to a newer native FFmpegKit version. The binding is gen
 ```sh
 # Stage the public headers from the device slice
 mkdir -p Headers
-cp -R FFmpegKit.iOS/libs/Video/ffmpegkit.xcframework/ios-arm64_arm64e/ffmpegkit.framework/Headers/* Headers/
+cp -R src/FFmpegKit.iOS/libs/Video/ffmpegkit.xcframework/ios-arm64_arm64e/ffmpegkit.framework/Headers/* Headers/
 
 # Sharpie must be pointed at an umbrella header. FFmpegKit.h alone only pulls in a fraction of
 # the API - binding just that is how the previous binding ended up missing FFmpegKitConfig,
@@ -215,14 +217,14 @@ ls Headers/*.h | grep -v fftools | grep -v ffmpegkit_exception \
 sharpie bind -output Binding -sdk iphoneos26.5 -scope Headers Headers/FFmpegKitUmbrella.h -c -I Headers
 ```
 
-Then reconcile `Binding/ApiDefinitions.cs` and `Binding/StructsAndEnums.cs` into `FFmpegKit.iOS/ApiDefinition.cs` and `FFmpegKit.iOS/Structs.cs`. Every `[Verify]` attribute sharpie emits must be reviewed and removed — they intentionally cause build failures. Note that sharpie emits the `Level` enum as `ulong` despite its negative members; it has to be `long`.
+Then reconcile `Binding/ApiDefinitions.cs` and `Binding/StructsAndEnums.cs` into `src/FFmpegKit.iOS/ApiDefinition.cs` and `src/FFmpegKit.iOS/Structs.cs`. Every `[Verify]` attribute sharpie emits must be reviewed and removed — they intentionally cause build failures. Note that sharpie emits the `Level` enum as `ulong` despite its negative members; it has to be `long`.
 
 ## Tests
 
 **Package tests** run anywhere and inspect the packed `.nupkg` files — assembly present for every target framework, all eight xcframeworks with iOS device and simulator slices only, manifests consistent with the slices actually shipped, the GPL/LGPL split matching what the binaries contain, and nuspec metadata:
 
 ```sh
-./FFmpegKit.iOS/BuildNugets.sh                       # produce ./artifacts first
+./build/BuildNugets.sh                       # produce ./artifacts first
 dotnet test tests/FFmpegKit.iOS.PackageTests
 FFMPEGKIT_VARIANTS=Video dotnet test tests/FFmpegKit.iOS.PackageTests   # ...or just one variant
 ```
