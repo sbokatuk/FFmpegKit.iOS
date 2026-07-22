@@ -48,7 +48,7 @@ jobs:
     # a confusing error. Those PRs still build and test; only the publish step is skipped.
     if: github.event.pull_request.head.repo.full_name == github.repository
     # Must match the Environment on the nuget.org trusted publishing policy for this workflow.
-    environment: production
+    environment: nuget.org
     permissions:
       contents: read
       # Lets the job request the OIDC token that nuget.org exchanges for a short-lived API key.

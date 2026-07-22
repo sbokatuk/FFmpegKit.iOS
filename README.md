@@ -225,7 +225,7 @@ Setup on nuget.org (**Account → Trusted Publishing**): a policy binds to exact
 | Repository Owner | `sbokatuk` |
 | Repository | `FFmpegKit.iOS` — the name only, not a URL |
 | Workflow File | `pr.yml` for one policy, `release.yml` for the other |
-| Environment | `production` — must match `environment:` on the publish job |
+| Environment | `nuget.org` — must match `environment:` on the publish job |
 
 Set a `NUGET_USER` secret if the nuget.org profile name ever changes.
 

@@ -59,7 +59,7 @@ jobs:
     needs: [version, build]
     runs-on: ubuntu-latest
     # Must match the Environment on the nuget.org trusted publishing policy for this workflow.
-    environment: production
+    environment: nuget.org
     permissions:
       # contents: write creates the GitHub release; id-token: write lets the job request the OIDC
       # token that nuget.org exchanges for a short-lived API key. Without the latter the token
