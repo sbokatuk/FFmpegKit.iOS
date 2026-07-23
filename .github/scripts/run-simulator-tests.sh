@@ -21,7 +21,11 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT="${REPO_ROOT}/tests/FFmpegKit.iOS.DeviceTests/FFmpegKit.iOS.DeviceTests.csproj"
 
 # The .NET 9 band builds net8/net9 and the .NET 10 band builds net9/net10, so pick the SDK that
-# owns the requested target framework. The SDK is resolved from the working directory, and the
+# owns the requested target framework. There is deliberately no net8 -> .NET 8 band mapping: the
+# .NET 9 band's iOS workload builds net8.0-ios18.0 outright, runtime packs included, and building
+# it on the .NET 8 band would additionally pin the runner to Xcode 16 while everything else needs
+# Xcode 26. (Android is different - there the API level in the target framework decides which
+# workload owns the runtime packs.) The SDK is resolved from the working directory, and the
 # repository's global.json pins .NET 9, hence the scratch directory.
 case "${TARGET_FRAMEWORK}" in
     net10.0-*) sdk_major=10 ;;

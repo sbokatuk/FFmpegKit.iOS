@@ -247,7 +247,7 @@ FFMPEGKIT_VARIANTS=Video dotnet test tests/FFmpegKit.iOS.PackageTests   # ...or 
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| [`pr.yml`](.github/workflows/pr.yml) | pull request | Builds and packs all 8 variants as `<version>-beta.<pr>.<run>`, runs package tests and the simulator smoke test, then publishes the betas to nuget.org. Forked PRs build and test but skip publishing, since they cannot read secrets. |
+| [`pr.yml`](.github/workflows/pr.yml) | pull request | Builds and packs all 8 variants as `<version>-beta.<pr>.<run>`, runs package tests and the simulator smoke tests (net8 and net10 legs in parallel), then publishes the betas to nuget.org. Forked PRs build and test but skip publishing, since they cannot read secrets. |
 | [`release.yml`](.github/workflows/release.yml) | tag `v*` | Same build and tests at the tag's version, publishes to nuget.org, then creates a GitHub release with the changelog since the previous tag and links to every package. |
 
 Both call the reusable [`build.yml`](.github/workflows/build.yml), which runs on macOS — iOS builds have no cross-platform path, unlike the Android bindings.

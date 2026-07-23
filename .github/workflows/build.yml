@@ -23,13 +23,16 @@ on:
         required: false
         default: Video
         type: string
-      e2e-target-framework:
+      e2e-target-frameworks:
         description: >
-          Which of the package's target frameworks the simulator smoke test runs against.
-          Defaults to net10, whose assets are produced by the merge step in BuildNugets.sh and so
-          are the ones worth proving at runtime.
+          Which of the package's target frameworks the simulator smoke test runs against, as a
+          JSON array - one matrix job per entry. Defaults to the two extremes: net8, the oldest
+          asset set and the one nothing else exercises, and net10, whose assets are produced by
+          the merge step in BuildNugets.sh and so are the only ones that could be grafted in
+          wrong. net9 sits between them and comes out of the same pack pass as net8, so testing
+          it too would buy little for the runner minutes.
         required: false
-        default: net10.0-ios26.0
+        default: '["net8.0-ios18.0", "net10.0-ios26.0"]'
         type: string
 
 env:
@@ -172,10 +175,16 @@ jobs:
             -p:FFmpegKitVersion="${{ inputs.version }}"
 
   e2e:
-    name: simulator smoke test
+    name: simulator smoke test (${{ matrix.target-framework }})
     timeout-minutes: 45
     needs: pack
     runs-on: macos-15
+    strategy:
+      # fail-fast off: when one target framework breaks it is worth knowing whether the other did
+      # too, since "net8 only" and "both" point at very different causes.
+      fail-fast: false
+      matrix:
+        target-framework: ${{ fromJSON(inputs.e2e-target-frameworks) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -206,13 +215,13 @@ jobs:
           path: artifacts
 
       - name: Run smoke tests on simulator
-        run: ./.github/scripts/run-simulator-tests.sh "${{ inputs.e2e-variant }}" "${{ inputs.version }}" "${{ inputs.e2e-target-framework }}"
+        run: ./.github/scripts/run-simulator-tests.sh "${{ inputs.e2e-variant }}" "${{ inputs.version }}" "${{ matrix.target-framework }}"
 
       - name: Upload simulator logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: simulator-test-logs
+          name: simulator-test-logs-${{ matrix.target-framework }}
           path: simulator-tests.log
           if-no-files-found: ignore
           retention-days: 7
