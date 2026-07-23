@@ -252,22 +252,6 @@ FFMPEGKIT_VARIANTS=Video dotnet test tests/FFmpegKit.iOS.PackageTests   # ...or 
 
 Both call the reusable [`build.yml`](.github/workflows/build.yml), which runs on macOS — iOS builds have no cross-platform path, unlike the Android bindings.
 
-### Publishing credentials
-
-Publishing uses [nuget.org Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing) — no long-lived API key. Each publish job requests a GitHub OIDC token (`id-token: write`), exchanges it via `NuGet/login@v1` for an API key valid for one hour, and pushes with that.
-
-Setup on nuget.org (**Account → Trusted Publishing**): a policy binds to exactly **one** workflow file, so this repository needs **two**, identical apart from the workflow file name:
-
-| Field | Value |
-| --- | --- |
-| Package Owner | `s.bokatuk` |
-| Repository Owner | `sbokatuk` |
-| Repository | `FFmpegKit.iOS` — the name only, not a URL |
-| Workflow File | `pr.yml` for one policy, `release.yml` for the other |
-| Environment | `nuget.org` — must match `environment:` on the publish job |
-
-Set a `NUGET_USER` secret if the nuget.org profile name ever changes.
-
 Note that prereleases pushed to nuget.org cannot be deleted, only unlisted — every pull request push publishes eight packages.
 
 ### Package size
