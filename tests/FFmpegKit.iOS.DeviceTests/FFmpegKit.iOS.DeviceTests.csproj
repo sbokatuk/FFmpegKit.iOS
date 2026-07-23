@@ -25,6 +25,16 @@
       test output rather than runtime chatter.
     -->
     <MtouchExtraArgs>--setenv=MONO_LOG_LEVEL=error</MtouchExtraArgs>
+
+    <!--
+      The interpreter, explicitly. The .NET 9 iOS SDK JITs a Debug simulator build; the .NET 8
+      one puts the runtime in aot-only mode for the same command line and then dies on the first
+      assembly it has no AOT image for. Setting it for both bands rather than only net8 keeps
+      the matrix legs comparable - a check that passes under the interpreter on one target
+      framework and under the JIT on another is not testing quite the same thing. See the Debug
+      comment in run-simulator-tests.sh for why nothing AOT-shaped is lost.
+    -->
+    <UseInterpreter>true</UseInterpreter>
   </PropertyGroup>
 
   <!--

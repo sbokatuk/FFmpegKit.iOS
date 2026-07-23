@@ -363,3 +363,6 @@ src/FFmpegKit.iOS/libs/
 # Raw `sharpie bind` output. Reconciled by hand into FFmpegKit.iOS/ApiDefinition.cs and
 # Structs.cs, which are the committed sources - this directory is scratch (see README).
 /Binding/
+
+# macOS Finder metadata
+.DS_Store

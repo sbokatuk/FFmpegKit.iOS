@@ -34,7 +34,7 @@
 		<ApplicationTitle>FFmpegKitExample</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.ffmpegkitexample</ApplicationId>
+		<ApplicationId>com.sbokatuk.ffmpegkit.example</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
