@@ -1,7 +1,7 @@
 # FFmpegKit.iOS
 
 [![NuGet](https://img.shields.io/nuget/v/FFmpegKit.Net.Video.iOS?label=nuget)](https://www.nuget.org/packages/FFmpegKit.Net.Video.iOS)
-[![release](https://github.com/sbokatuk/FFmpegKit.Net.Video.iOS/actions/workflows/release.yml/badge.svg)](https://github.com/sbokatuk/FFmpegKit.Net.Video.iOS/actions/workflows/release.yml)
+[![release](https://github.com/sbokatuk/FFmpegKit.iOS/actions/workflows/release.yml/badge.svg)](https://github.com/sbokatuk/FFmpegKit.iOS/actions/workflows/release.yml)
 [![Targets: net8.0 | net9.0 | net10.0](https://img.shields.io/badge/targets-net8.0%20%7C%20net9.0%20%7C%20net10.0-512BD4)](#packages)
 [![ffmpeg 8.1.2](https://img.shields.io/badge/ffmpeg-8.1.2-632CA6)](#about)
 [![Licence: MIT AND LGPL-3.0 or GPL-3.0](https://img.shields.io/badge/licence-MIT%20AND%20LGPL--3.0%20or%20GPL--3.0-orange)](#licence)
