@@ -209,7 +209,7 @@ dotnet pack src/FFmpegKit.iOS/FFmpegKit.iOS.csproj \
 
 ### Regenerating the binding
 
-Only needed when bumping to a newer native FFmpegKit version. The binding is generated with [Objective Sharpie](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/maui/) from the vendored frameworks' public headers:
+Only needed when bumping to a newer native FFmpegKit version. The binding is generated with [Objective Sharpie](https://learn.microsoft.com/en-us/previous-versions/xamarin/cross-platform/macios/binding/objective-sharpie/) from the vendored frameworks' public headers:
 
 ```sh
 # Stage the public headers from the device slice

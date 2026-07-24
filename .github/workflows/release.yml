@@ -114,7 +114,10 @@ jobs:
           # notes written for 8.1.2 rather than silently falling back to raw commit subjects.
           notes="docs/release-notes/${VERSION}.md"
           [ -f "${notes}" ] || notes="docs/release-notes/${VERSION%%-*}.md"
-          # Last resort, the native line itself: lets 8.1.2.2 reuse notes filed as 8.1.2.md.
+          # Last resort, the native line itself: lets a maintainer file line-generic notes as
+          # 8.1.2.md once and have every 8.1.2.x revision reuse them. Revision-specific files
+          # (8.1.2.1.md) are deliberately not reused by later revisions - a new revision without
+          # its own notes falls back to the generated commit list instead.
           [ -f "${notes}" ] || notes="docs/release-notes/$(printf '%s' "${VERSION%%-*}" | cut -d. -f1-3).md"
 
           {
