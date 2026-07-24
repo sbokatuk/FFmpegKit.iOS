@@ -13,7 +13,7 @@
       are not comparable - do not read one as newer than the other.
     -->
     <FFmpegKitNativeVersion>8.1.2</FFmpegKitNativeVersion>
-    <FFmpegKitBindingRevision>1</FFmpegKitBindingRevision>
+    <FFmpegKitBindingRevision>2</FFmpegKitBindingRevision>
     <VersionPrefix>$(FFmpegKitNativeVersion).$(FFmpegKitBindingRevision)</VersionPrefix>
 
     <!-- Which FFmpegKit variant to build. CI builds each of these in turn. -->

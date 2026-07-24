@@ -2,9 +2,9 @@
 
 [![NuGet](https://img.shields.io/nuget/v/FFmpegKit.Net.Video.iOS?label=nuget)](https://www.nuget.org/packages/FFmpegKit.Net.Video.iOS)
 [![release](https://github.com/sbokatuk/FFmpegKit.iOS/actions/workflows/release.yml/badge.svg)](https://github.com/sbokatuk/FFmpegKit.iOS/actions/workflows/release.yml)
-[![Targets: net8.0 | net9.0 | net10.0](https://img.shields.io/badge/targets-net8.0%20%7C%20net9.0%20%7C%20net10.0-512BD4)](#packages)
+[![Targets: net8.0 | net9.0 | net10.0](https://img.shields.io/badge/targets-net8.0%20%7C%20net9.0%20%7C%20net10.0-512BD4)](#installation)
 [![ffmpeg 8.1.2](https://img.shields.io/badge/ffmpeg-8.1.2-632CA6)](#about)
-[![Licence: MIT AND LGPL-3.0 or GPL-3.0](https://img.shields.io/badge/licence-MIT%20AND%20LGPL--3.0%20or%20GPL--3.0-orange)](#licence)
+[![Licence: MIT AND LGPL-3.0 or GPL-3.0](https://img.shields.io/badge/licence-MIT%20AND%20LGPL--3.0%20or%20GPL--3.0-orange)](#license)
 
 .NET for iOS and .NET MAUI bindings for the native **FFmpegKit** library.
 
@@ -165,6 +165,16 @@ var probe = await FFprobeKit.GetMediaInformationAsync(path);
 Console.WriteLine(probe.MediaInformation?.Format);
 ```
 
+Global log and statistics hooks take lambdas, and are cleared by name:
+
+```c#
+FFmpegKitConfig.EnableLogCallback(log => Console.WriteLine(log.Message));
+FFmpegKitConfig.DisableLogCallback();          // likewise DisableStatisticsCallback()
+```
+
+Both callbacks arrive on an FFmpegKit worker thread — marshal before touching UI — and are
+held by FFmpegKit until cleared, so anything they capture stays alive too.
+
 More examples and usage can be found in the [original FFmpegKit wiki](https://github.com/arthenica/ffmpeg-kit/wiki/iOS). That repository is archived, but the Objective-C API it documents is the one these bindings expose, so it remains the reference.
 
 ## Building
@@ -209,7 +219,7 @@ dotnet pack src/FFmpegKit.iOS/FFmpegKit.iOS.csproj \
 
 ### Regenerating the binding
 
-Only needed when bumping to a newer native FFmpegKit version. The binding is generated with [Objective Sharpie](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/maui/) from the vendored frameworks' public headers:
+Only needed when bumping to a newer native FFmpegKit version. The binding is generated with [Objective Sharpie](https://learn.microsoft.com/en-us/previous-versions/xamarin/cross-platform/macios/binding/objective-sharpie/) from the vendored frameworks' public headers:
 
 ```sh
 # Stage the public headers from the device slice
