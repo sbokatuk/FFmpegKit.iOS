@@ -81,14 +81,17 @@
 	<!--
 	  Resolved from ./artifacts through the local feed in the repository's NuGet.config, not from
 	  nuget.org, so the sample always exercises your local build. Run BuildNugets.sh first. The
-	  version defaults to FFmpegKitNativeVersion; pass -p:FFmpegKitVersion=8.1.2-rc.1 to point it
-	  at a specific build.
+	  version defaults to VersionPrefix - the full four-part version including the binding
+	  revision. Defaulting to the three-part FFmpegKitNativeVersion instead would let NuGet's
+	  lowest-match resolution prefer an older published revision (8.1.2.1) over the local pack
+	  (8.1.2.2), silently building the sample against a stale binding. Pass
+	  -p:FFmpegKitVersion=8.1.2-rc.1 to point it at a specific build.
 
 	  It references the Full (LGPL) variant deliberately - swapping to a -gpl one would make the
 	  sample itself GPL-3.0.
 	-->
 	<PropertyGroup>
-		<FFmpegKitVersion Condition=" '$(FFmpegKitVersion)' == '' ">$(FFmpegKitNativeVersion)</FFmpegKitVersion>
+		<FFmpegKitVersion Condition=" '$(FFmpegKitVersion)' == '' ">$(VersionPrefix)</FFmpegKitVersion>
 	</PropertyGroup>
 
 	<ItemGroup>

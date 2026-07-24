@@ -102,7 +102,10 @@ public partial class MainPage : ContentPage
 				null => "no return code",
 				{ IsValueSuccess: true } => $"success, {session.Duration} ms, {session.State}",
 				{ IsValueCancel: true } => "cancelled",
-				_ => $"failed (code {returnCode.Value}): {session.FailStackTrace}",
+				// A command that ran and failed explains itself in Output (its last line is
+				// FFmpeg's error message); FailStackTrace only exists when the session could
+				// not run at all.
+				_ => $"failed (code {returnCode.Value}): {LastLine(session.Output) ?? session.FailStackTrace}",
 			};
 
 			if (returnCode is { IsValueSuccess: true })
@@ -127,6 +130,11 @@ public partial class MainPage : ContentPage
 		_cancellation?.Cancel();
 		StatusLabel.Text = "Cancelling…";
 	}
+
+	static string? LastLine(string? output) =>
+		output?.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) is { Length: > 0 } lines
+			? lines[^1]
+			: null;
 
 	void SetBusy(bool isBusy, string status)
 	{
