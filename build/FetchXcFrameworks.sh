@@ -136,7 +136,7 @@ for variant in $VARIANTS; do
     # Fetch the manifest first: a variant that does not exist for this version fails here, before
     # 200 MB has been downloaded.
     checksums="$WORK_DIR/$variant-checksums.json"
-    if ! curl -fsSL -o "$checksums" "$base/checksums.json"; then
+    if ! curl -fsSL --retry 3 --retry-delay 2 -o "$checksums" "$base/checksums.json"; then
         echo "error: no checksums.json for $FFMPEG_KIT_VERSION-$tag - does that release exist?" >&2
         exit 1
     fi
@@ -146,7 +146,7 @@ for variant in $VARIANTS; do
 
     for framework in $FRAMEWORKS; do
         archive="$WORK_DIR/$variant-$framework.zip"
-        curl -fsSL -o "$archive" "$base/$framework.xcframework.zip"
+        curl -fsSL --retry 3 --retry-delay 2 -o "$archive" "$base/$framework.xcframework.zip"
 
         expected=$(sed -n "s/.*\"$framework\"[[:space:]]*:[[:space:]]*\"\([0-9a-f]*\)\".*/\1/p" "$checksums" | head -1)
         if [ -z "$expected" ]; then
