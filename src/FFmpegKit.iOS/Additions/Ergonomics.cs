@@ -1,9 +1,26 @@
 using System;
 
+// The generated binding compiles with Nullable disabled and carries no annotations; these
+// hand-written additions are annotation-correct, so nullable-enabled consumers get real
+// nullability information for at least the surface they touch most.
+#nullable enable
+
 namespace Ffmpegkit.Ios
 {
 	public partial class FFmpegKitConfig
 	{
+		/// <summary>Stops routing FFmpeg log lines to a previously enabled callback.</summary>
+		/// <remarks>
+		/// Equivalent to passing null to <see cref="EnableLogCallback"/>. The generated binding
+		/// ships no nullable annotations, so nullable-enabled callers would otherwise need the
+		/// null-forgiving <c>EnableLogCallback (null!)</c> to express this.
+		/// </remarks>
+		public static void DisableLogCallback () => EnableLogCallback (null!);
+
+		/// <summary>Stops routing FFmpeg statistics samples to a previously enabled callback.</summary>
+		/// <remarks>Equivalent to passing null to <see cref="EnableStatisticsCallback"/>.</remarks>
+		public static void DisableStatisticsCallback () => EnableStatisticsCallback (null!);
+
 		/// <summary>The current log level, as the <see cref="Ffmpegkit.Ios.Level"/> enum.</summary>
 		/// <remarks>
 		/// The bound <see cref="LogLevel"/> is an <see cref="int"/>, faithfully to the native

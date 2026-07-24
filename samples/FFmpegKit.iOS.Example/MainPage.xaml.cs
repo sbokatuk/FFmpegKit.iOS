@@ -112,9 +112,9 @@ public partial class MainPage : ContentPage
 		}
 		finally
 		{
-			// Passing null clears the callback; leaving it registered would keep updating the
-			// progress bar during the next operation.
-			FFmpegKitConfig.EnableStatisticsCallback(null!);
+			// Leaving the callback registered would keep updating the progress bar during the
+			// next operation.
+			FFmpegKitConfig.DisableStatisticsCallback();
 			_cancellation.Dispose();
 			_cancellation = null;
 		}
