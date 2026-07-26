@@ -74,9 +74,19 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
-	<ItemGroup>
+	<!--
+	  $(MauiVersion) is whatever Controls the installed workload bundles, which on the net10 band
+	  is older than the 10.0.60 CommunityToolkit.Maui.MediaElement 10.0.0 declares - restore then
+	  fails NU1605. Controls is an ordinary NuGet package independent of the workload pack, so the
+	  net10 band pins the toolkit's floor explicitly; net8 and net9 keep the workload's own.
+	-->
+	<ItemGroup Condition="!$(TargetFramework.StartsWith('net10.0'))">
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
+	</ItemGroup>
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0'))">
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.60" />
+		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="10.0.60" />
 	</ItemGroup>
 
 	<!--
