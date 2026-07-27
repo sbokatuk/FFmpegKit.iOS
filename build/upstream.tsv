@@ -1,0 +1,27 @@
+# What the upstream-drift workflow watches, and the single source of truth for it.
+#
+# build/check-upstream.sh reads this; it knows how to query each ecosystem but nothing about which
+# components this repository binds. Adding a native SDK means adding a row here.
+#
+# Columns are single-tab-separated.
+#   group    reporting group - one GitHub issue per group, titled with this text
+#   label    how the component is named inside the issue
+#   kind     cocoapods | maven | github-release | github-tag
+#   pin      the MSBuild property in Directory.Build.props holding the pinned version
+#   locator  kind-specific: pod name, groupId:artifactId[:packaging][@repo], or owner/repo[:strip]
+#   confirm  download URL template with {version}, or "-" to derive it from the locator
+#
+# There is no Maven-style feed for the Apple binaries. arthenica/ffmpeg-kit is archived with every
+# release stripped of assets, ffmpeg-kit-next is source-only, and dev.ffmpegkit-maintained (which
+# the Android bindings use) publishes .aar files only - so the ffmpeg_kit_flutter fork is the only
+# source still shipping xcframeworks. See build/FetchXcFrameworks.sh and the README.
+#
+# That fork tags one version once per variant (8.1.2-audio, 8.1.2-full, 8.1.2-min and five more),
+# so the locator carries a sed expression that reduces a tag to its bare version. Without it every
+# tag looks like a prerelease and the component would silently never report.
+#
+# The confirmation names one variant's xcframework because a release is cut whole: if the -full tag
+# is up, the other seven are too, and if it is not, nothing here is fetchable anyway.
+#
+# group	label	kind	pin	locator	confirm
+FFmpegKit	FFmpegKit xcframeworks (ffmpeg_kit_flutter)	github-release	FFmpegKitNativeVersion	sk3llo/ffmpeg_kit_flutter:s/-[a-z-]*$//	https://github.com/sk3llo/ffmpeg_kit_flutter/releases/download/{version}-full/ffmpegkit.xcframework.zip
