@@ -177,6 +177,17 @@ held by FFmpegKit until cleared, so anything they capture stays alive too.
 
 More examples and usage can be found in the [original FFmpegKit wiki](https://github.com/arthenica/ffmpeg-kit/wiki/iOS). That repository is archived, but the Objective-C API it documents is the one these bindings expose, so it remains the reference.
 
+## Troubleshooting
+
+**Crash on a real device: `Could not find the type 'ObjCRuntime.__Registrar__'`.** From `8.1.2.3` the package handles this for you — you should not see it. It happens because .NET 9 made the *managed static* registrar the device default, and that registrar does not emit the per-assembly `__Registrar__` lookup type for this binding, so the first call returning a bound Objective-C object (for example `FFprobeKit.GetMediaInformationAsync`, which returns a `MediaInformationSession`) crashes at load. It is the .NET SDK issue [dotnet/macios#22071](https://github.com/dotnet/macios/issues/22071), not a fault in the binding, and the simulator never hits it because the simulator/interpreter path uses a different registrar — which is why it can pass every simulator test and still crash on a phone.
+
+The package ships a `buildTransitive` target that defaults consuming apps (including apps that reference it only through `FFmpegKit.Net.Full.Maui`) to **`Registrar=dynamic`**, which resolves classes by reflection and sidesteps the gap. To override it, set `<Registrar>` yourself in the app project:
+
+- **NativeAOT** (`PublishAot=true`) requires the managed static registrar, so a NativeAOT app must set `Registrar` explicitly; this particular crash remains until the upstream issue is fixed.
+- **`Registrar=static`** (the classic static registrar) also avoids the crash and is lighter at runtime than `dynamic`; it is a reasonable override once verified on a device.
+
+`partial-static`, which the [macOS binding](https://github.com/sbokatuk/FFmpegKit.Mac) defaults to for the equivalent failure, is not usable on iOS — it produces duplicate-symbol link errors against `Microsoft.iOS.registrar.a`.
+
 ## Building
 
 ### Prerequisites

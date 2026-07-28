@@ -161,6 +161,19 @@
     -->
     <None Include="../../LICENSE" Pack="true" PackagePath="licenses/" Visible="false" />
     <None Include="$(FFmpegKitNativeLicenseFile)" Pack="true" PackagePath="licenses/" Visible="false" />
+
+    <!--
+      Defaults consuming apps to Registrar=dynamic on iOS - see the comment in the targets file
+      itself for why. NuGet's buildTransitive convention requires the file be named after the
+      package id so it gets auto-imported (also into projects that reference this only
+      transitively, e.g. through FFmpegKit.Net.Full.Maui), hence the copy-with-rename instead of
+      packing build/buildTransitive/Registrar.targets directly under its own name.
+    -->
+    <None Include="$(IntermediateOutputPath)buildTransitive/$(PackageId).targets" Pack="true" PackagePath="buildTransitive/" Visible="false" />
   </ItemGroup>
+
+  <Target Name="_StageRegistrarBuildTransitiveTarget" BeforeTargets="_GetPackageFiles">
+    <Copy SourceFiles="../../build/buildTransitive/Registrar.targets" DestinationFiles="$(IntermediateOutputPath)buildTransitive/$(PackageId).targets" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

@@ -1,0 +1,35 @@
+<Project>
+  <!--
+    The managed static registrar (the default Registrar on a real iOS device -
+    Xamarin.Shared.Sdk.targets' SelectRegistrar target - since the simulator/interpreter path
+    never hits this) requires the linker to inject a per-assembly ObjCRuntime.__Registrar__ type
+    into every assembly that defines bound NSObject subclasses. That injection never happens for
+    this binding assembly, regardless of TrimMode/TrimmerRootAssembly/IsTrimmable on the consuming
+    app's side - the app then crashes with "Could not find the type 'ObjCRuntime.__Registrar__'
+    in the assembly '<this assembly>'" the moment a binding call returns a bound type (e.g.
+    FFprobeKit.GetMediaInformationAsync's MediaInformationSession).
+
+    This is the .NET SDK issue dotnet/macios#22071, surfaced by .NET 9 promoting the managed
+    static registrar to the device default (it was the classic static registrar in .NET 8); when
+    that issue is fixed upstream this whole target can be removed.
+
+    Registrar=dynamic sidesteps the whole per-assembly lookup table by resolving Objective-C
+    classes through runtime reflection instead, which is unaffected by this gap. Defaulting to it
+    here - unless the app already set Registrar explicitly - mirrors how the Mac binding defaults
+    Registrar to partial-static via its own buildTransitive target (see this repository's README
+    Troubleshooting section for that equivalent failure); partial-static itself isn't an option
+    here since it produces duplicate-symbol link errors against Microsoft.iOS.registrar.a on iOS.
+
+    Two caveats a consumer may need to override for (hence the '$(Registrar)' == '' guard, which
+    always yields to an explicit setting):
+      - NativeAOT (PublishAot=true) requires the managed static registrar, so an app publishing
+        with NativeAOT must set Registrar itself and accept that this crash is unfixed there until
+        the upstream issue is.
+      - The classic static registrar (Registrar=static) does not use __Registrar__ and so also
+        avoids the crash, with a lighter runtime cost than dynamic; it is a reasonable explicit
+        override for an app that has verified it on-device.
+  -->
+  <PropertyGroup Condition="'$(Registrar)' == '' And $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+    <Registrar>dynamic</Registrar>
+  </PropertyGroup>
+</Project>
