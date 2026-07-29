@@ -158,6 +158,40 @@ discover_github_tag() { # <owner/repo> [tag-strip-expr]
       | awk -F/ '{ print $NF }' | sed -E "s/^v//; ${2:-s/^//}" | clean_versions | newest
 }
 
+# nuget.org's registration index, filtered to *listed* versions.
+#
+# Deliberately not the flat container (v3-flatcontainer/<id>/index.json), which is the obvious
+# choice and the wrong one: it enumerates every version ever pushed, including delisted ones, and
+# a delisted package is still downloadable - so neither the version list nor the stage-2 download
+# check can tell the difference. FFmpegKit.Net.Full.Android is the case in point: 8.1.7.1 through
+# 8.1.7.3 are all delisted, the flat container still lists them, and a watcher built on it reports
+# "re-pin 8.1.2.5 to 8.1.7.3" - pointing at packages the author deliberately withdrew.
+#
+# The registration index carries catalogEntry.listed per version. Delisted entries also carry the
+# published sentinel 1900-01-01, which is checked too: listed is absent on some older entries.
+#
+# Paginated for packages with enough versions, and the pages are gzip whether or not they are
+# asked for, hence --compressed on the outer fetch and the magic-byte check on the inner ones.
+discover_nuget() { # <PackageId>
+    local id
+    id="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+    fetch --compressed "https://api.nuget.org/v3/registration5-gz-semver2/${id}/index.json" \
+      | jq_lines 'import sys,json,gzip,urllib.request
+def load(u):
+    r=urllib.request.Request(u,headers={"Accept-Encoding":"gzip"})
+    b=urllib.request.urlopen(r,timeout=60).read()
+    if b[:2]==b"\x1f\x8b": b=gzip.decompress(b)
+    return json.loads(b)
+for page in json.load(sys.stdin)["items"]:
+    items=page.get("items")
+    if items is None: items=load(page["@id"])["items"]
+    for it in items:
+        ce=it["catalogEntry"]
+        if ce.get("listed",True) and not str(ce.get("published","")).startswith("1900"):
+            print(ce["version"])' \
+      | clean_versions | newest
+}
+
 # Some repositories tag one version many times, once per build variant - sk3llo/ffmpeg_kit_flutter
 # ships 8.1.2-audio, 8.1.2-full, 8.1.2-min and five more. The manifest supplies a sed expression
 # after the slug to reduce a tag to its bare version; without one, every such tag is discarded by
@@ -206,6 +240,12 @@ download_url() { # download_url <kind> <locator> <confirm-template> <version>
             printf '%s/%s/%s/%s/%s-%s.%s' \
               "${base}" "${group//.//}" "${artifact}" "${version}" "${artifact}" "${version}" "${packaging}"
             ;;
+        nuget)
+            local nid
+            nid="$(printf '%s' "${locator}" | tr '[:upper:]' '[:lower:]')"
+            printf 'https://api.nuget.org/v3-flatcontainer/%s/%s/%s.%s.nupkg' \
+              "${nid}" "${version}" "${nid}" "${version}"
+            ;;
         *) printf '' ;;
     esac
 }
@@ -242,6 +282,7 @@ while IFS=$'\t' read -r group label kind pin locator confirm; do
             fi
             latest="$(discover_maven_pom_dep "$1" "${sdk_ver}" "$3" || true)"
             ;;
+        nuget)          latest="$(discover_nuget "${locator}" || true)" ;;
         github-release) latest="$(discover_github_release "${locator%%:*}" "$(strip_expr "${locator}")" || true)" ;;
         github-tag)     latest="$(discover_github_tag   "${locator%%:*}" "$(strip_expr "${locator}")" || true)" ;;
         *)
@@ -266,6 +307,45 @@ while IFS=$'\t' read -r group label kind pin locator confirm; do
     # "Newer exists upstream" is deliberately not a finding here: it is the question that produced
     # an unactionable report about com.vonage:webrtc 145.0.113 while opentok-android-sdk 2.34.1
     # was, correctly, still built against 121.1.101.
+    # A platform binding package, published from a sibling repository - this author's own release,
+    # not a vendor's. So the question is not "did upstream ship something" but "has this umbrella
+    # been re-pinned behind a platform release that already went out". The two directions are not
+    # symmetric, and treating them as one is what would make this watcher useless:
+    #
+    #   pin < published   the umbrella resolves an older platform package than the one on
+    #                     nuget.org. Consumers of the umbrella silently get the old binding. This
+    #                     is the finding the check exists for.
+    #   pin > published   the platform release is not on nuget.org yet. That is the normal
+    #                     mid-flight state of a release train - platform repositories publish
+    #                     first and the umbrella re-pins behind them - so it is logged and never
+    #                     filed, or every train would open an issue on its way through.
+    if [ "${kind}" = "nuget" ]; then
+        # A prerelease pin. Every pull request publishes <version>-beta.N.M, and one of those left
+        # behind in Directory.Build.props means the released umbrella depends on a package built
+        # from a branch. This is checked first because `sort -V` ranks a prerelease *above* its own
+        # release - "2.34.1.4-beta.7.3" above "2.34.1.4" - so the comparisons below would read it
+        # as a pin ahead of upstream and say nothing.
+        case "${current}" in
+            *-*)
+                note "${group}" "**${label}**: pinned the prerelease \`${current}\` while \`${latest}\` is published on nuget.org — a released umbrella must not depend on a beta. Re-pin \`${pin}\` in \`Directory.Build.props\`."
+                continue
+                ;;
+        esac
+        if [ "${current}" = "${latest}" ]; then
+            echo "    ok  ${label}: pinned ${current}, newest published ${latest}"
+        elif newer "${latest}" "${current}"; then
+            echo "    -   ${label}: pinned ${current} is ahead of nuget.org's ${latest} — platform release not published yet"
+        else
+            url="$(download_url nuget "${locator}" "${confirm}" "${latest}" || true)"
+            if [ -n "${url}" ] && downloadable "${url}"; then
+                note "${group}" "**${label}**: pinned \`${current}\`, but \`${latest}\` is published on nuget.org — re-pin \`${pin}\` in \`Directory.Build.props\`. [nupkg](${url})"
+            else
+                echo "    -   ${label}: ${latest} is indexed but its .nupkg does not download yet (pinned ${current})"
+            fi
+        fi
+        continue
+    fi
+
     if [ "${kind}" = "maven-pom-dep" ]; then
         set -- ${locator}
         if [ "${latest}" = "${current}" ]; then
