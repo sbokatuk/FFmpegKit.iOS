@@ -87,9 +87,13 @@ while IFS=$'\t' read -r prefix parent packages; do
     # already happened (a re-run); an older "Update <id> to ..." means this release supersedes
     # it, which is told on the same thread and moved into the title, rather than a second issue
     # per release piling up.
+    #
+    # The list API, not --search: search rides an eventually-consistent index, so an issue this
+    # script filed seconds ago is invisible to it and a re-run files a duplicate (measured, not
+    # theorised). The list endpoint is read-your-writes; the title match happens here instead.
     open_json="$([ "${DRY}" = "--dry-run" ] && printf '[]' \
-      || gh issue list -R "${parent}" --state open \
-           --search "in:title \"Update ${first} to\"" --json number,title)"
+      || gh issue list -R "${parent}" --state open -L 100 --json number,title \
+      | jq --arg p "Update ${first} to " '[.[] | select(.title | startswith($p))]')"
     exact="$(printf '%s' "${open_json}" | jq -r --arg t "${title}" \
       '[.[] | select(.title == $t)][0].number // empty')"
     if [ -n "${exact}" ]; then
