@@ -225,3 +225,13 @@ jobs:
             --title "${VERSION}" \
             --notes-file release-notes.md \
             ${{ needs.version.outputs.prerelease == 'true' && '--prerelease' || '' }}
+
+  # The parent repositories pin these packages by exact version; tell them what just shipped
+  # rather than leaving it to their daily drift check. Who cares, and about which packages,
+  # lives in build/parents.tsv. Skips itself quietly while PARENT_ISSUE_PAT does not exist.
+  notify-parents:
+    needs: publish
+    uses: ./.github/workflows/notify-parents.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets: inherit

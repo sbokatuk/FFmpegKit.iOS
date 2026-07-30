@@ -1,0 +1,57 @@
+name: notify parents
+
+# The push half of the sibling-pin story: parent repositories pin this repository's packages by
+# exact version, and their daily upstream-drift check only notices a pin is behind the next
+# morning. This tells them at release time instead - release.yml calls it after publishing, and
+# build/notify-parents.sh files (or updates) an issue in each repository named in
+# build/parents.tsv, linking the release and its notes.
+#
+# Cross-repository issues cannot be written with GITHUB_TOKEN, which is scoped to this
+# repository; the job uses PARENT_ISSUE_PAT, a fine-grained token whose only reach is Issues
+# read/write on the parent repositories. Until that secret exists the job reports itself skipped
+# and exits green, so releases never depend on it.
+#
+# The release: trigger is a belt for releases created by hand with a personal token; the ones
+# auto-release.yml drives are created with GITHUB_TOKEN, whose events deliberately do not start
+# workflows - which is exactly why release.yml calls this explicitly instead.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'The released tag (v3.12.1.4, signaling-v2.2.8.2, ...)'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Released tag to notify the parents about (backfill)'
+        required: true
+        type: string
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    # Forks have neither the secret nor parents expecting mail from them.
+    if: github.repository_owner == 'sbokatuk'
+    name: file re-pin issues in parent repositories
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.PARENT_ISSUE_PAT }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Notify
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN}" ]; then
+            echo 'PARENT_ISSUE_PAT is not set; parent repositories were not notified.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          ./build/notify-parents.sh "${TAG}" | tee -a "$GITHUB_STEP_SUMMARY"
