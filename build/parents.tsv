@@ -1,0 +1,10 @@
+# Which parent repositories pin packages this repository releases, and which packages they pin.
+# Read by build/notify-parents.sh (called from release.yml after publishing) to file a re-pin
+# issue in each parent. Columns are single-tab-separated.
+#   tag-prefix  the release tag's prefix - the version follows it (v3.12.1.4 -> prefix "v")
+#   parent      owner/repo of the repository holding the pin
+#   packages    space-separated package ids the parent pins from this repository's release
+# A released tag whose prefix matches no row notifies nobody.
+#
+# tag-prefix	parent	packages
+v	sbokatuk/FFMpegKit.Net	FFmpegKit.Net.Full.iOS
